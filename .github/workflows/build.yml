@@ -22,14 +22,14 @@ jobs:
         os: [
           # macos-13,
           # macos-14,
-          macos-latest,
+          # macos-latest,
           # ubuntu-22.04,
-          ubuntu-latest,
+          # ubuntu-latest,
           # windows-2019,
-          # windows-latest,
+          windows-latest,
         ]
         type: [
-          Release,
+          # Release,
           Debug,
         ]
     runs-on:  ${{ matrix.os }}
