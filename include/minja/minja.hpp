@@ -18,7 +18,22 @@
 #include <unordered_set>
 #include <json.hpp>
 
+#ifdef _WIN32
+#define ENDL "\r\n"
+#else
+#define ENDL "\n"
+#endif
+
 using json = nlohmann::ordered_json;
+
+static std::string normalize_newlines(const std::string & s) {
+#ifdef _WIN32
+  static const std::regex nl_regex("\r\n");
+  return std::regex_replace(s, nl_regex, "\n");
+#else
+  return s;
+#endif
+}
 
 namespace minja {
 
@@ -76,7 +91,7 @@ private:
   void dump(std::ostringstream & out, int indent = -1, int level = 0, bool to_json = false) const {
     auto print_indent = [&](int level) {
       if (indent > 0) {
-          out << "\n";
+          out << ENDL;
           for (int i = 0, n = level * indent; i < n; ++i) out << ' ';
       }
     };
@@ -547,11 +562,11 @@ static std::string error_location_suffix(const std::string & source, size_t pos)
   auto max_line = std::count(start, end, '\n') + 1;
   auto col = pos - std::string(start, it).rfind('\n');
   std::ostringstream out;
-  out << " at row " << line << ", column " << col << ":\n";
-  if (line > 1) out << get_line(line - 1) << "\n";
-  out << get_line(line) << "\n";
-  out << std::string(col - 1, ' ') << "^" << "\n";
-  if (line < max_line) out << get_line(line + 1) << "\n";
+  out << " at row " << line << ", column " << col << ":" ENDL;
+  if (line > 1) out << get_line(line - 1) << ENDL;
+  out << get_line(line) << ENDL;
+  out << std::string(col - 1, ' ') << "^" << ENDL;
+  if (line < max_line) out << get_line(line + 1) << ENDL;
 
   return out.str();
 }
@@ -786,7 +801,7 @@ public:
     std::string render(const std::shared_ptr<Context> & context) const {
         std::ostringstream out;
         render(out, context);
-        return out.str();
+        return normalize_newlines(out.str());
     }
 };
 
@@ -1292,6 +1307,10 @@ struct ArgumentsExpression {
 static std::string strip(const std::string & s) {
   static std::regex trailing_spaces_regex("^\\s+|\\s+$");
   return std::regex_replace(s, trailing_spaces_regex, "");
+  // auto start = s.find_first_not_of(" \t\n\r");
+  // if (start == std::string::npos) return "";
+  // auto end = s.find_last_not_of(" \t\n\r");
+  // return s.substr(start, end - start + 1);
 }
 
 static std::string html_escape(const std::string & s) {
@@ -2101,13 +2120,14 @@ private:
       static std::regex expr_open_regex(R"(\{\{([-~])?)");
       static std::regex block_open_regex(R"(^\{%([-~])?[\s\n\r]*)");
       static std::regex block_keyword_tok(R"((if|else|elif|endif|for|endfor|set|endset|block|endblock|macro|endmacro|filter|endfilter)\b)");
-      static std::regex text_regex(R"([\s\S\n\r]*?($|(?=\{\{|\{%|\{#)))");
+      static std::regex non_text_open_regex(R"(\{\{|\{%|\{#)");
       static std::regex expr_close_regex(R"([\s\n\r]*([-~])?\}\})");
       static std::regex block_close_regex(R"([\s\n\r]*([-~])?%\})");
 
       TemplateTokenVector tokens;
       std::vector<std::string> group;
       std::string text;
+      std::smatch match;
 
       try {
         while (it != end) {
@@ -2228,10 +2248,15 @@ private:
             } else {
               throw std::runtime_error("Unexpected block: " + keyword);
             }
-          } else if (!(text = consumeToken(text_regex, SpaceHandling::Keep)).empty()) {
+          } else if (std::regex_search(it, end, match, non_text_open_regex)) {
+            auto text_end = it + match.position();
+            text = std::string(it, text_end);
+            it = text_end;
             tokens.push_back(std::make_unique<TextTemplateToken>(location, SpaceHandling::Keep, SpaceHandling::Keep, text));
           } else {
-            if (it != end) throw std::runtime_error("Unexpected character");
+            text = std::string(it, end);
+            it = end;
+            tokens.push_back(std::make_unique<TextTemplateToken>(location, SpaceHandling::Keep, SpaceHandling::Keep, text));
           }
         }
         return tokens;
@@ -2290,14 +2315,28 @@ private:
               if (post_space == SpaceHandling::Strip) {
                 static std::regex trailing_space_regex(R"((\s|\r|\n)+$)");
                 text = std::regex_replace(text, trailing_space_regex, "");
+                // auto last = text.find_last_not_of(" \t\r\n");
+                // if (last != std::string::npos) text.erase(last + 1);
               } else if (options.lstrip_blocks && it != end) {
                 static std::regex trailing_last_line_space_regex(R"((\r?\n)[ \t]*$)");
                 text = std::regex_replace(text, trailing_last_line_space_regex, "$1");
+                // auto i = text.size();
+                // while (i > 0 && (text[i - 1] == ' ' || text[i - 1] == '\t')) i--;
+                // if (i > 0 && text[i - 1] == '\n') {
+                //   i--;
+                //   if (i > 0 && text[i - 1] == '\r') i--;
+                //   text.resize(i);
+                // }
               }
-
               if (it == end && !options.keep_trailing_newline) {
-                static std::regex r(R"(\r?\n$)");
-                text = std::regex_replace(text, r, "");  // Strip one trailing newline
+                // static std::regex r(R"(\r?\n$)");
+                // text = std::regex_replace(text, r, "");  // Strip one trailing newline
+                auto i = text.size();
+                if (i > 0 && text[i - 1] == '\n') {
+                  i--;
+                  if (i > 0 && text[i - 1] == '\r') i--;
+                  text.resize(i);
+                }
               }
               children.emplace_back(std::make_shared<TextNode>(token->location, text));
           } else if (auto expr_token = dynamic_cast<ExpressionTemplateToken*>(token.get())) {
@@ -2357,7 +2396,7 @@ private:
 public:
 
     static std::shared_ptr<TemplateNode> parse(const std::string& template_str, const Options & options) {
-        Parser parser(std::make_shared<std::string>(template_str), options);
+        Parser parser(std::make_shared<std::string>(normalize_newlines(template_str)), options);
         auto tokens = parser.tokenize();
         TemplateTokenIterator begin = tokens.begin();
         auto it = begin;
@@ -2627,11 +2666,11 @@ inline std::shared_ptr<Context> Context::builtins() {
     while (std::getline(iss, line, '\n')) {
       auto needs_indent = !is_first || first;
       if (is_first) is_first = false;
-      else out += "\n";
+      else out += ENDL;
       if (needs_indent) out += indent;
       out += line;
     }
-    if (!text.empty() && text.back() == '\n') out += "\n";
+    if (!text.empty() && text.back() == '\n') out += ENDL;
     return out;
   }));
   globals.set("selectattr", Value::callable([=](const std::shared_ptr<Context> & context, ArgumentsValue & args) {

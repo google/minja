@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: MIT
 
 add_executable(test-syntax test-syntax.cpp)
+target_compile_features(test-syntax PUBLIC cxx_std_17)
 target_link_libraries(test-syntax PRIVATE
     nlohmann_json::nlohmann_json
     gtest_main
@@ -15,6 +16,7 @@ target_link_libraries(test-syntax PRIVATE
 gtest_discover_tests(test-syntax)
 
 add_executable(test-chat-template test-chat-template.cpp)
+target_compile_features(test-chat-template PUBLIC cxx_std_17)
 target_link_libraries(test-chat-template PRIVATE nlohmann_json::nlohmann_json)
 
 set(MODEL_IDS
@@ -109,6 +111,7 @@ if (MINJA_FUZZTEST_ENABLED)
         fuzztest_setup_fuzzing_flags()
     endif()
     add_executable(test-fuzz test-fuzz.cpp)
+    target_compile_features(test-fuzz PUBLIC cxx_std_17)
     target_include_directories(test-fuzz PRIVATE ${fuzztest_BINARY_DIR})
     target_link_libraries(test-fuzz PRIVATE nlohmann_json::nlohmann_json)
     link_fuzztest(test-fuzz)
