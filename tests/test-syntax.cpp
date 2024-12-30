@@ -24,7 +24,7 @@ static std::string render_python(const std::string & template_str, const json & 
             {"keep_trailing_newline", options.keep_trailing_newline},
         }},
     };
-    { 
+    {
         std::ofstream of("data.json");
         of << data.dump(2);
         of.close();
@@ -46,21 +46,11 @@ static std::string render_python(const std::string & template_str, const json & 
 
 static std::string render(const std::string & template_str, const json & bindings, const minja::Options & options) {
     if (getenv("USE_JINJA2")) {
-        try {
-            return render_python(template_str, bindings, options);
-        } catch (const std::exception & e) {
-            std::cerr << "ERROR: " + std::string(e.what());
-        }
+        return render_python(template_str, bindings, options);
     }
     auto root = minja::Parser::parse(template_str, options);
     auto context = minja::Context::make(bindings);
-    std::string actual;
-    try {
-        actual = root->render(context);
-    } catch (const std::runtime_error & e) {
-        actual = "ERROR: " + std::string(e.what());
-    }
-    return actual;
+    return root->render(context);
 }
 
 const minja::Options lstrip_blocks {
@@ -80,6 +70,9 @@ const minja::Options lstrip_trim_blocks {
 };
 
 TEST(SyntaxTest, SimpleCases) {
+    auto ThrowsWithSubstr = [](const std::string & expected_substr) {
+        return testing::Throws<std::runtime_error>(Property(&std::runtime_error::what, testing::HasSubstr(expected_substr)));
+    };
     // EXPECT_EQ(
     //     "\r\nhey\r\nho!",
     //     render("\r\n{{ 'hey\r\nho!' }}\r\n", {}, {}));
@@ -93,12 +86,12 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ("\n",       render("    {% if True %}\n    {% endif %}", {}, lstrip_blocks));
     EXPECT_EQ("",         render("    {% if True %}\n    {% endif %}", {}, lstrip_trim_blocks));
     EXPECT_EQ("        ", render("    {% if True %}\n    {% endif %}", {}, trim_blocks));
-    
+
     EXPECT_EQ("      ", render("  {% set _ = 1 %}    ", {}, {}));
     EXPECT_EQ("    ",   render("  {% set _ = 1 %}    ", {}, lstrip_blocks));
     EXPECT_EQ("      ", render("  {% set _ = 1 %}    ", {}, trim_blocks));
     EXPECT_EQ("    ",   render("  {% set _ = 1 %}    ", {}, lstrip_trim_blocks));
-    
+
     EXPECT_EQ("  \n            \n                ", render("  \n    {% set _ = 1 %}        \n                ", {}, {}));
     EXPECT_EQ("  \n        \n                ",     render("  \n    {% set _ = 1 %}        \n                ", {}, lstrip_blocks));
     EXPECT_EQ("  \n            \n                ", render("  \n    {% set _ = 1 %}        \n                ", {}, trim_blocks));
@@ -323,6 +316,22 @@ TEST(SyntaxTest, SimpleCases) {
         );
     }
     EXPECT_EQ(
+        "[0, 1, 2][0, 2]",
+        render(R"(
+            {%- set o = [0, 1, 2, 3] -%}
+            {%- set _ = o.pop() -%}
+            {{- o | tojson -}}
+            {%- set _ = o.pop(1) -%}
+            {{- o | tojson -}}
+        )", {}, {}));
+    EXPECT_EQ(
+        R"({"y": 2})",
+        render(R"(
+            {%- set o = {"x": 1, "y": 2} -%}
+            {%- set _ = o.pop("x") -%}
+            {{- o | tojson -}}
+        )", {}, {}));
+    EXPECT_EQ(
         R"(&lt;, &gt;, &amp;, &#34;)",
         render(R"(
             {%- set res = [] -%}
@@ -360,7 +369,7 @@ TEST(SyntaxTest, SimpleCases) {
                 {{- values -}}
             {%- endmacro -%}
             {{- foo() }} {{ foo() -}})", {}, {}));
-    
+
     if (!getenv("USE_JINJA2")) {
         EXPECT_EQ(
             "[]",
@@ -466,24 +475,27 @@ TEST(SyntaxTest, SimpleCases) {
         "",
         render("{% if 1 %}{% elif 1 %}{% else %}{% endif %}", {}, {}));
 
+
     if (!getenv("USE_JINJA2")) {
-        auto expect_throws_with_message_substr = [](const std::function<void()> & fn, const std::string & expected_substr) {
-            EXPECT_THAT([=]() { fn(); }, testing::Throws<std::runtime_error>(Property(&std::runtime_error::what, testing::HasSubstr(expected_substr))));
-        };
+        // TODO: capture stderr from jinja2 and test these.
 
-        expect_throws_with_message_substr([]() { render("{% else %}", {}, {}); }, "Unexpected else");
+        EXPECT_THAT([]() { render("{%- set _ = [].pop() -%}", {}, {}); }, ThrowsWithSubstr("pop from empty list"));
+        EXPECT_THAT([]() { render("{%- set _ = {}.pop() -%}", {}, {}); }, ThrowsWithSubstr("pop"));
+        EXPECT_THAT([]() { render("{%- set _ = {}.pop('foooo') -%}", {}, {}); }, ThrowsWithSubstr("foooo"));
 
-        expect_throws_with_message_substr([]() { render("{% else %}", {}, {}); }, "Unexpected else");
-        expect_throws_with_message_substr([]() { render("{% endif %}", {}, {}); }, "Unexpected endif");
-        expect_throws_with_message_substr([]() { render("{% elif 1 %}", {}, {}); }, "Unexpected elif");
-        expect_throws_with_message_substr([]() { render("{% endfor %}", {}, {}); }, "Unexpected endfor");
-        expect_throws_with_message_substr([]() { render("{% endfilter %}", {}, {}); }, "Unexpected endfilter");
+        EXPECT_THAT([]() { render("{% else %}", {}, {}); }, ThrowsWithSubstr("Unexpected else"));
 
-        expect_throws_with_message_substr([]() { render("{% if 1 %}", {}, {}); }, "Unterminated if");
-        expect_throws_with_message_substr([]() { render("{% for x in 1 %}", {}, {}); }, "Unterminated for");
-        expect_throws_with_message_substr([]() { render("{% if 1 %}{% else %}", {}, {}); }, "Unterminated if");
-        expect_throws_with_message_substr([]() { render("{% if 1 %}{% else %}{% elif 1 %}{% endif %}", {}, {}); }, "Unterminated if");
-        expect_throws_with_message_substr([]() { render("{% filter trim %}", {}, {}); }, "Unterminated filter");
+        EXPECT_THAT([]() { render("{% else %}", {}, {}); }, ThrowsWithSubstr("Unexpected else"));
+        EXPECT_THAT([]() { render("{% endif %}", {}, {}); }, ThrowsWithSubstr("Unexpected endif"));
+        EXPECT_THAT([]() { render("{% elif 1 %}", {}, {}); }, ThrowsWithSubstr("Unexpected elif"));
+        EXPECT_THAT([]() { render("{% endfor %}", {}, {}); }, ThrowsWithSubstr("Unexpected endfor"));
+        EXPECT_THAT([]() { render("{% endfilter %}", {}, {}); }, ThrowsWithSubstr("Unexpected endfilter"));
+
+        EXPECT_THAT([]() { render("{% if 1 %}", {}, {}); }, ThrowsWithSubstr("Unterminated if"));
+        EXPECT_THAT([]() { render("{% for x in 1 %}", {}, {}); }, ThrowsWithSubstr("Unterminated for"));
+        EXPECT_THAT([]() { render("{% if 1 %}{% else %}", {}, {}); }, ThrowsWithSubstr("Unterminated if"));
+        EXPECT_THAT([]() { render("{% if 1 %}{% else %}{% elif 1 %}{% endif %}", {}, {}); }, ThrowsWithSubstr("Unterminated if"));
+        EXPECT_THAT([]() { render("{% filter trim %}", {}, {}); }, ThrowsWithSubstr("Unterminated filter"));
     }
 
     EXPECT_EQ(

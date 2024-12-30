@@ -206,6 +206,38 @@ public:
       throw std::runtime_error("Value is not an array: " + dump());
     array_->push_back(v);
   }
+  Value pop(const Value& index) {
+    if (is_array()) {
+      if (array_->empty())
+        throw std::runtime_error("pop from empty list");
+      if (index.is_null()) {
+        auto ret = array_->back();
+        array_->pop_back();
+        return ret;
+      } else if (!index.is_number_integer()) {
+        throw std::runtime_error("pop index must be an integer: " + index.dump());
+      } else {
+        auto i = index.get<int>();
+        if (i < 0 || i >= static_cast<int>(array_->size()))
+          throw std::runtime_error("pop index out of range: " + index.dump());
+        auto it = array_->begin() + (i < 0 ? array_->size() + i : i);
+        auto ret = *it;
+        array_->erase(it);
+        return ret;
+      }
+    } else if (is_object()) {
+      if (!index.is_hashable())
+        throw std::runtime_error("Unashable type: " + index.dump());
+      auto it = object_->find(index.primitive_);
+      if (it == object_->end())
+        throw std::runtime_error("Key not found: " + index.dump());
+      auto ret = it->second;
+      object_->erase(it);
+      return ret;
+    } else {
+      throw std::runtime_error("Value is not an array or object: " + dump());
+    }
+  }
   Value get(const Value& key) {
     if (array_) {
       if (!key.is_number_integer()) {
@@ -1349,6 +1381,9 @@ public:
               vargs.expectArgs("append method", {1, 1}, {0, 0});
               obj.push_back(vargs.args[0]);
               return Value();
+          } else if (method->get_name() == "pop") {
+              vargs.expectArgs("pop method", {0, 1}, {0, 0});
+              return obj.pop(vargs.args.empty() ? Value() : vargs.args[0]);
           } else if (method->get_name() == "insert") {
               vargs.expectArgs("insert method", {2, 2}, {0, 0});
               auto index = vargs.args[0].get<int64_t>();
@@ -1364,6 +1399,9 @@ public:
               result.push_back(Value::array({key, obj.at(key)}));
             }
             return result;
+          } else if (method->get_name() == "pop") {
+            vargs.expectArgs("pop method", {1, 1}, {0, 0});
+            return obj.pop(vargs.args[0]);
           } else if (method->get_name() == "get") {
             vargs.expectArgs("get method", {1, 2}, {0, 0});
             auto key = vargs.args[0];
