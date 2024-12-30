@@ -58,7 +58,7 @@ class chat_template {
             /* .keep_trailing_newline = */ false,
         });
         supports_tools_ = source.find("tools") != std::string::npos;
-        
+
         auto renders_string_arguments =
             try_render({
                 {
