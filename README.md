@@ -110,13 +110,13 @@ Main limitations (non-exhaustive list):
 
 ## Roadmap / TODOs
 
-- Fix known issues w/ CRLF on Windows
+- [x] Fix known issues w/ CRLF on Windows
+- [ ] Integrate to llama.cpp: https://github.com/ggerganov/llama.cpp/pull/11016 + https://github.com/ggerganov/llama.cpp/pull/9639
 - Improve fuzzing coverage:
     - use thirdparty jinja grammar to guide exploration of inputs (or implement prettification of internal ASTs and use them to generate arbitrary values)
     - fuzz each filter / test
 - Measure / track test coverage
 - Setup performance tests
-- Integrate to llama.cpp: https://github.com/ggerganov/llama.cpp/pull/9639
 - Simplify two-pass parsing
     - Pass tokens to IfNode and such
 - Macro nested set scope = global?
