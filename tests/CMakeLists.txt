@@ -45,11 +45,17 @@ set(MODEL_IDS
     deepseek-ai/deepseek-coder-33b-instruct
     deepseek-ai/DeepSeek-Coder-V2-Instruct
     deepseek-ai/DeepSeek-V2.5
+    THUDM/glm-4-9b-chat
+    THUDM/glm-edge-1.5b-chat
     google/gemma-2-2b-it # Gated
     google/gemma-7b-it # Gated
+    ibm-granite/granite-3.1-8b-instruct
     indischepartij/MiniCPM-3B-OpenHermes-2.5-v2
+    Infinigence/Megrez-3B-Instruct
+    LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct
     mattshumer/Reflection-Llama-3.1-70B
     meetkai/functionary-medium-v3.2
+    meta-llama/Llama-2-7b-chat-hf # Gated
     meta-llama/Llama-3.2-3B-Instruct # Gated
     meta-llama/Meta-Llama-3.1-8B-Instruct # Gated
     microsoft/Phi-3-medium-4k-instruct
