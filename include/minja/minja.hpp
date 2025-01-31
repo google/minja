@@ -2160,7 +2160,7 @@ private:
       static std::regex expr_open_regex(R"(\{\{([-~])?)");
       static std::regex block_open_regex(R"(^\{%([-~])?[\s\n\r]*)");
       static std::regex block_keyword_tok(R"((if|else|elif|endif|for|endfor|generation|endgeneration|set|endset|block|endblock|macro|endmacro|filter|endfilter)\b)");
-      static std::regex text_regex(R"([\s\S\r\n]*?($|(?=\{\{|\{%|\{#)))", std::regex::multiline);
+      static std::regex text_regex(R"([\s\S\r\n]*?(?=\{[{%#]|$))");
       static std::regex expr_close_regex(R"([\s\n\r]*([-~])?\}\})");
       static std::regex block_close_regex(R"([\s\n\r]*([-~])?%\})");
 
