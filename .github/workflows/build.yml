@@ -54,22 +54,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check curl version BEFORE
+        if: matrix.setup.os == 'windows-latest'
+        run: "C:\Program Files\Git\bin\sh.exe" -xc "curl --version"
+  
       - name: Install Choco Deps
         if: matrix.setup.os == 'windows-latest'
         run: |
-          choco install curl msys2 --yes
+          choco install curl --yes
+          echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
+          curl --version
 
-      - name: Prepend MSYS2 to PATH
+      - name: Check curl version AFTER
         if: matrix.setup.os == 'windows-latest'
-        run: echo "C:\msys64\usr\bin" >> $GITHUB_PATH
-
-      - name: Check curl version
-        run: curl --version
-
+        run: "C:\Program Files\Git\bin\sh.exe" -xc "curl --version"
+  
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.11
         with:
           key: ${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
+          variant: ${{ matrix.setup.os == 'windows-latest' ? 'sccache' : 'ccache' }}
 
       - name: Set up CMake
         uses: lukka/get-cmake@latest
