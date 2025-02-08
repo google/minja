@@ -54,6 +54,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Choco Deps
+        if: matrix.setup.os == 'windows-latest'
+        run: |
+          choco install curl msys2 --yes
+
+      - name: Prepend MSYS2 to PATH
+        if: matrix.setup.os == 'windows-latest'
+        run: echo "C:\msys64\usr\bin" >> $GITHUB_PATH
+
+      - name: Check curl version
+        run: curl --version
+
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.11
         with:
