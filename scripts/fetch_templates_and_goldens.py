@@ -459,12 +459,12 @@ async def main():
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
 
-    for model_id in model_ids:
-        await process_model(output_folder, model_id, contexts)
-    # await asyncio.gather(*[
-    #     process_model(output_folder, model_id, contexts)
-    #     for model_id in model_ids
-    # ])
+    # for model_id in model_ids:
+    #     await process_model(output_folder, model_id, contexts)
+    await asyncio.gather(*[
+        process_model(output_folder, model_id, contexts)
+        for model_id in model_ids
+    ])
 
 if __name__ == '__main__':
     asyncio.run(main())
