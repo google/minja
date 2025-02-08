@@ -54,22 +54,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check curl version BEFORE
-        if: ${{ matrix.setup.os == 'windows-latest' }}
-        run: |
-          & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
+      # - name: Check curl version BEFORE
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
   
-      - name: Install Choco Deps
-        if: ${{ matrix.setup.os == 'windows-latest' }}
-        run: |
-          choco install curl --yes
-          echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
-          curl --version
+      # - name: Install Choco Deps
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     choco install curl --yes
+      #     echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
+      #     curl --version
 
-      - name: Check curl version AFTER
-        if: ${{ matrix.setup.os == 'windows-latest' }}
-        run: |
-          & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
+      # - name: Check curl version AFTER
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
   
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.11
