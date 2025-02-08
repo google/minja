@@ -78,6 +78,7 @@ set(MODEL_IDS
     databricks/dbrx-instruct # Gated
     google/gemma-2-2b-it # Gated
     google/gemma-7b-it # Gated
+    BEE-spoke-data/tFINE-900m-instruct-orpo
     MiniMaxAI/MiniMax-Text-01
     indischepartij/MiniCPM-3B-OpenHermes-2.5-v2
     mattshumer/Reflection-Llama-3.1-70B
