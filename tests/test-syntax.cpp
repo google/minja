@@ -75,6 +75,10 @@ TEST(SyntaxTest, SimpleCases) {
     };
 
     EXPECT_EQ(
+        "Ok",
+        render("{{ 'ok'.capitalize() }}", {}, {}));
+
+    EXPECT_EQ(
         "ok",
         render("{# Hey\nHo #}{#- Multiline...\nComments! -#}{{ 'ok' }}{# yo #}", {}, {}));
     

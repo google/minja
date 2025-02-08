@@ -1385,6 +1385,13 @@ static std::string strip(const std::string & s) {
   return s.substr(start, end - start + 1);
 }
 
+static std::string capitalize(const std::string & s) {
+  if (s.empty()) return s;
+  auto result = s;
+  result[0] = std::toupper(result[0]);
+  return result;
+}
+
 static std::string html_escape(const std::string & s) {
   std::string result;
   result.reserve(s.size());
@@ -1462,6 +1469,9 @@ public:
           if (method->get_name() == "strip") {
             vargs.expectArgs("strip method", {0, 0}, {0, 0});
             return Value(strip(str));
+          } else if (method->get_name() == "capitalize") {
+            vargs.expectArgs("capitalize method", {0, 0}, {0, 0});
+            return Value(capitalize(str));
           } else if (method->get_name() == "endswith") {
             vargs.expectArgs("endswith method", {1, 1}, {0, 0});
             auto suffix = vargs.args[0].get<std::string>();
