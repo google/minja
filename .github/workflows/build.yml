@@ -75,7 +75,6 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2.11
         with:
           key: ${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
-          variant: ${{ matrix.setup.os == 'windows-latest' ? 'sccache' : 'ccache' }}
 
       - name: Set up CMake
         uses: lukka/get-cmake@latest
