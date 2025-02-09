@@ -31,11 +31,8 @@ target_link_libraries(test-polyfills PRIVATE
 )
 if (NOT CMAKE_CROSSCOMPILING)
     gtest_discover_tests(test-syntax)
-endif()
-
-if (NOT CMAKE_CROSSCOMPILING)
-    gtest_discover_tests(test-syntax)
-    gtest_discover_tests(test-polyfills)
+    add_test(NAME test-polyfills COMMAND test-polyfills)
+    set_tests_properties(test-polyfills PROPERTIES WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
 add_executable(test-capabilities test-capabilities.cpp)
@@ -95,50 +92,8 @@ set(MODEL_IDS
     bytedance-research/UI-TARS-7B-SFT
     carsenk/phi3.5_mini_exp_825_uncensored
     CohereForAI/aya-expanse-8b
-    CohereForAI/c4ai-command-r-plus # Gated
-    cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese
-    cyberagent/DeepSeek-R1-Distill-Qwen-32B-Japanese
-    databricks/dbrx-instruct # Gated
-    DavieLion/Llama-3.2-1B-SPIN-iter3
-    deepseek-ai/deepseek-coder-33b-instruct
-    deepseek-ai/deepseek-coder-6.7b-instruct
-    deepseek-ai/deepseek-coder-7b-instruct-v1.5
-    deepseek-ai/DeepSeek-Coder-V2-Instruct
-    deepseek-ai/DeepSeek-Coder-V2-Lite-Base
-    deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
-    deepseek-ai/deepseek-llm-67b-chat
-    deepseek-ai/deepseek-llm-7b-chat
-    deepseek-ai/DeepSeek-R1
-    deepseek-ai/DeepSeek-R1-Distill-Llama-70B
-    deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-    deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-    deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
-    deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
-    deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
-    deepseek-ai/DeepSeek-R1-Zero
-    deepseek-ai/DeepSeek-V2-Lite
-    deepseek-ai/DeepSeek-V3
-    Delta-Vector/Rei-12B
-    dicta-il/dictalm2.0-instruct
-    ehristoforu/Falcon3-8B-Franken-Basestruct
-    EpistemeAI/Mistral-Nemo-Instruct-12B-Philosophy-Math
-    fireworks-ai/llama-3-firefunction-v2 # https://github.com/google/minja/issues/7
-    FlofloB/83k_continued_pretraining_Qwen2.5-0.5B-Instruct_Unsloth_merged_16bit
-    FlofloB/test_continued_pretraining_Phi-3-mini-4k-instruct_Unsloth_merged_16bit
-    godlikehhd/alpaca_data_sampled_ifd_new_5200
-    godlikehhd/alpaca_data_score_max_0.7_2600
-    google/gemma-2-27b-it
-    google/gemma-2-2b-it
-    google/gemma-2-2b-it # Gated
-    google/gemma-2-2b-jpn-it
-    google/gemma-7b-it # Gated
-    MiniMaxAI/MiniMax-Text-01
-    bytedance-research/UI-TARS-72B-DPO
-    bytedance-research/UI-TARS-7B-DPO
-    bytedance-research/UI-TARS-7B-SFT
-    carsenk/phi3.5_mini_exp_825_uncensored
-    CohereForAI/aya-expanse-8b
     CohereForAI/c4ai-command-r-plus
+    CohereForAI/c4ai-command-r7b-12-2024
     cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese
     cyberagent/DeepSeek-R1-Distill-Qwen-32B-Japanese
     databricks/dbrx-instruct
@@ -160,6 +115,7 @@ set(MODEL_IDS
     deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
     deepseek-ai/DeepSeek-R1-Zero
     deepseek-ai/DeepSeek-V2-Lite
+    deepseek-ai/DeepSeek-V2.5
     deepseek-ai/DeepSeek-V3
     Delta-Vector/Rei-12B
     dicta-il/dictalm2.0-instruct
@@ -206,20 +162,8 @@ set(MODEL_IDS
     Magpie-Align/Llama-3.1-8B-Magpie-Align-v0.1
     mattshumer/Reflection-Llama-3.1-70B
     MaziyarPanahi/calme-3.2-instruct-78b
-    meetkai/functionary-medium-v3.1      # jinja2 expectation is computed w/ wrong escapes
+    meetkai/functionary-medium-v3.1
     meetkai/functionary-medium-v3.2
-    meta-llama/Llama-2-7b-chat-hf
-    meta-llama/Llama-2-7b-chat-hf # Gated
-    meta-llama/Llama-3.1-8B-Instruct
-    meta-llama/Llama-3.1-8B-Instruct # Gated
-    meta-llama/Llama-3.2-11B-Vision-Instruct
-    meta-llama/Llama-3.2-1B-Instruct
-    meta-llama/Llama-3.2-3B-Instruct
-    meta-llama/Llama-3.2-3B-Instruct # Gated
-    meta-llama/Llama-3.3-70B-Instruct
-    meta-llama/Llama-3.3-70B-Instruct # Gated
-    meta-llama/Meta-Llama-3-8B-Instruct
-    meta-llama/Meta-Llama-3.1-8B-Instruct # Gated
     meta-llama/Llama-2-7b-chat-hf
     meta-llama/Llama-3.1-8B-Instruct
     meta-llama/Llama-3.2-11B-Vision-Instruct
@@ -233,25 +177,6 @@ set(MODEL_IDS
     microsoft/Phi-3-small-8k-instruct
     microsoft/Phi-3.5-mini-instruct
     microsoft/Phi-3.5-vision-instruct
-    microsoft/phi-4
-    migtissera/Tess-3-Mistral-Nemo-12B
-    MiniMaxAI/MiniMax-Text-01
-    MiniMaxAI/MiniMax-VL-01
-    ministral/Ministral-3b-instruct
-    mistralai/Codestral-22B-v0.1
-    mistralai/Mistral-7B-Instruct-v0.1
-    mistralai/Mistral-7B-Instruct-v0.2
-    mistralai/Mistral-7B-Instruct-v0.2 # Gated
-    mistralai/Mistral-7B-Instruct-v0.3
-    mistralai/Mistral-Large-Instruct-2407 # Gated
-    mistralai/Mistral-Large-Instruct-2411
-    mistralai/Mistral-Large-Instruct-2411 # Gated
-    mistralai/Mistral-Nemo-Instruct-2407
-    mistralai/Mistral-Nemo-Instruct-2407 # Gated
-    mistralai/Mistral-Small-24B-Instruct-2501
-    mistralai/Mixtral-8x7B-Instruct-v0.1
-    mistralai/Mixtral-8x7B-Instruct-v0.1 # Gated
-    mkurman/Qwen2.5-14B-DeepSeek-R1-1M
     microsoft/phi-4
     migtissera/Tess-3-Mistral-Nemo-12B
     MiniMaxAI/MiniMax-Text-01
@@ -388,21 +313,7 @@ set(MODEL_IDS
 if(NOT WIN32)
     list(APPEND MODEL_IDS
         # Needs investigation (https://github.com/google/minja/issues/40)
-        # CohereForAI/c4ai-command-r7b-12-2024 # Gated
-        CohereForAI/c4ai-command-r7b-12-2024 # Gated
-        deepseek-ai/deepseek-coder-33b-instruct
-        deepseek-ai/DeepSeek-Coder-V2-Instruct
-        deepseek-ai/DeepSeek-V2.5
-        deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-        deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
-        deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
-        # CohereForAI/c4ai-command-r7b-12-2024
-        # deepseek-ai/deepseek-coder-33b-instruct
-        # deepseek-ai/DeepSeek-Coder-V2-Instruct
-        # deepseek-ai/DeepSeek-V2.5
-        # deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-        # deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
-        # deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+        
     )
 endif()
 

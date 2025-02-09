@@ -17,6 +17,22 @@
 
 using namespace minja;
 
+static std::string read_file(const std::string &path)
+{
+    std::ifstream fs(path, std::ios_base::binary);
+    if (!fs.is_open())
+    {
+        throw std::runtime_error("Failed to open file: " + path);
+    }
+    fs.seekg(0, std::ios_base::end);
+    auto size = fs.tellg();
+    fs.seekg(0);
+    std::string out;
+    out.resize(static_cast<size_t>(size));
+    fs.read(&out[0], static_cast<std::streamsize>(size));
+    return out;
+}
+
 #define TEMPLATE_CHATML \
     "{%- for message in messages -%}\n" \
     "  {{- '<|im_start|>' + message.role + '\n' + message.content + '<|im_end|>\n' -}}\n" \
@@ -120,6 +136,7 @@ const json message_tool {
     { "content",    {
       {"result", 123},
     }},
+    { "tool_call_id", "123456789"},
 };
 
 const auto special_function_tool = json::parse(R"({
@@ -346,7 +363,8 @@ TEST(PolyfillTest, ToolSupported) {
         "  \"role\": \"tool\",\n"
         "  \"content\": {\n"
         "    \"result\": 123\n"
-        "  }\n"
+        "  },\n"
+        "  \"tool_call_id\": \"123456789\"\n"
         "}\n"
         "message: ",
         tmpl.apply(inputs));
@@ -363,9 +381,199 @@ TEST(PolyfillTest, ToolPolyfill) {
         "  \"tool_response\": {\n"
         "    \"content\": {\n"
         "      \"result\": 123\n"
-        "    }\n"
+        "    },\n"
+        "    \"tool_call_id\": \"123456789\"\n"
         "  }\n"
         "}<|im_end|>\n"
         "<|im_start|>assistant\n",
         tmpl.apply(inputs));
 }
+
+#ifndef _WIN32
+TEST(ToolTest, DeepSeekR1) {
+    chat_template tmpl(read_file("tests/deepseek-ai-DeepSeek-R1-Distill-Qwen-32B.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<｜tool▁outputs▁begin｜><｜tool▁output▁begin｜>{'result': 123}<｜tool▁output▁end｜><｜tool▁outputs▁end｜>",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, CommandR7b) {
+    chat_template tmpl(read_file("tests/CohereForAI-c4ai-command-r7b-12-2024-tool_use.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|># System Preamble\n"
+        "You are in contextual safety mode. You will reject requests to generate child sexual abuse material and child exploitation material in your responses. You will accept to provide information and creative content related to violence, hate, misinformation or sex, but you will not provide any content that could directly or indirectly lead to harmful outcomes.\n"
+        "\n"
+        "Your information cutoff date is June 2024.\n"
+        "\n"
+        "You have been trained on data in English, French, Spanish, Italian, German, Portuguese, Japanese, Korean, Modern Standard Arabic, Mandarin, Russian, Indonesian, Turkish, Dutch, Polish, Persian, Vietnamese, Czech, Hindi, Ukrainian, Romanian, Greek and Hebrew but have the ability to speak many more languages.\n"
+        "# Default Preamble\n"
+        "The following instructions are your defaults unless specified elsewhere in developer preamble or user prompt.\n"
+        "- Your name is Command.\n"
+        "- You are a large language model built by Cohere.\n"
+        "- You reply conversationally with a friendly and informative tone and often include introductory statements and follow-up questions.\n"
+        "- If the input is ambiguous, ask clarifying follow-up questions.\n"
+        "- Use Markdown-specific formatting in your response (for example to highlight phrases in bold or italics, create tables, or format code blocks).\n"
+        "- Use LaTeX to generate mathematical notation for complex equations.\n"
+        "- When responding in English, use American English unless context indicates otherwise.\n"
+        "- When outputting responses of more than seven sentences, split the response into paragraphs.\n"
+        "- Prefer the active voice.\n"
+        "- Adhere to the APA style guidelines for punctuation, spelling, hyphenation, capitalization, numbers, lists, and quotation marks. Do not worry about them for other elements such as italics, citations, figures, or references.\n"
+        "- Use gender-neutral pronouns for unspecified persons.\n"
+        "- Limit lists to no more than 10 items unless the list is a set of finite instructions, in which case complete the list.\n"
+        "- Use the third person when asked to write a summary.\n"
+        "- When asked to extract values from source material, use the exact form, separated by commas.\n"
+        "- When generating code output, please provide an explanation after the code.\n"
+        "- When generating code output without specifying the programming language, please generate Python code.\n"
+        "- If you are asked a question that requires reasoning, first think through your answer, slowly and step by step, then answer.<|END_OF_TURN_TOKEN|><|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|><|START_TOOL_RESULT|>[\n"
+        "    {\n"
+        "        \"tool_call_id\": \"\",\n"
+        "        \"results\": {\n"
+        "            \"0\": {\"result\": 123}\n"
+        "        },\n"
+        "        \"is_error\": null\n"
+        "    }\n"
+        "]<|END_TOOL_RESULT|><|END_OF_TURN_TOKEN|><|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>",
+        tmpl.apply(inputs));
+}
+#endif // NOT _WIN32
+
+TEST(ToolTest, MistralNemo) {
+    chat_template tmpl(read_file("tests/mistralai-Mistral-Nemo-Instruct-2407.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "[TOOL_RESULTS]{\"content\": {'result': 123}, \"call_id\": \"123456789\"}[/TOOL_RESULTS]",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, NousResearchHermes3) {
+    chat_template tmpl(read_file("tests/NousResearch-Hermes-3-Llama-3.1-70B-tool_use.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|im_start|>system\n"
+        "You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: <tools>  </tools>Use the following pydantic model json schema for each tool call you will make: {\"properties\": {\"name\": {\"title\": \"Name\", \"type\": \"string\"}, \"arguments\": {\"title\": \"Arguments\", \"type\": \"object\"}}, \"required\": [\"name\", \"arguments\"], \"title\": \"FunctionCall\", \"type\": \"object\"}}\n"
+        "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags as follows:\n"
+        "<tool_call>\n"
+        "{\"name\": <function-name>, \"arguments\": <args-dict>}\n"
+        "</tool_call><|im_end|>\n"
+        "<tool_response>\n"
+        "{'result': 123}\n"
+        "</tool_response><|im_end|><|im_start|>assistant\n",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, NousResearchHermes2) {
+    chat_template tmpl(read_file("tests/NousResearch-Hermes-2-Pro-Llama-3-8B-tool_use.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|im_start|>system\n"
+        "You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: <tools>  </tools>Use the following pydantic model json schema for each tool call you will make: {\"properties\": {\"name\": {\"title\": \"Name\", \"type\": \"string\"}, \"arguments\": {\"title\": \"Arguments\", \"type\": \"object\"}}, \"required\": [\"name\", \"arguments\"], \"title\": \"FunctionCall\", \"type\": \"object\"}}\n"
+        "For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags as follows:\n"
+        "<tool_call>\n"
+        "{\"name\": <function-name>, \"arguments\": <args-dict>}\n"
+        "</tool_call><|im_end|>\n"
+        "<tool_response>\n"
+        "{'result': 123}\n"
+        "</tool_response><|im_end|><|im_start|>assistant\n",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, Llama3_3) {
+    chat_template tmpl(read_file("tests/meta-llama-Llama-3.3-70B-Instruct.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|start_header_id|>system<|end_header_id|>\n"
+        "\n"
+        "Cutting Knowledge Date: December 2023\n"
+        "Today Date: 26 Jul 2024\n"
+        "\n"
+        "<|eot_id|><|start_header_id|>ipython<|end_header_id|>\n"
+        "\n"
+        "{\"result\": 123}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n"
+        "\n",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, MeetkaiFunctionary3_1) {
+    chat_template tmpl(read_file("tests/meetkai-functionary-medium-v3.1.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|start_header_id|>system<|end_header_id|>\n"
+        "\n"
+        "\n"
+        "Cutting Knowledge Date: December 2023\n"
+        "\n"
+        "<|eot_id|><|start_header_id|>ipython<|end_header_id|>\n"
+        "\n"
+        "{'result': 123}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n"
+        "\n",
+        tmpl.apply(inputs));
+}
+
+TEST(ToolTest, MeetkaiFunctionary3_2) {
+    chat_template tmpl(read_file("tests/meetkai-functionary-medium-v3.2.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|start_header_id|>system<|end_header_id|>\n"
+        "\n"
+        "You are capable of executing available function(s) if required.\n"
+        "Only execute function(s) when absolutely necessary.\n"
+        "Ask for the required input to:recipient==all\n"
+        "Use JSON for function arguments.\n"
+        "Respond in this format:\n"
+        ">>>${recipient}\n"
+        "${content}\n"
+        "Available functions:\n"
+        "// Supported function definitions that should be called when necessary.\n"
+        "namespace functions {\n"
+        "\n"
+        "} // namespace functions<|eot_id|><|start_header_id|>tool<|end_header_id|>\n"
+        "\n"
+        "{'result': 123}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n"
+        "\n"
+        ">>>",
+        tmpl.apply(inputs));
+}
+
+/*
+https://github.com/google/minja/issues/7
+TEST(ToolTest, FirefunctionV2) {
+    chat_template tmpl(read_file("tests/fireworks-ai-llama-3-firefunction-v2.jinja"), "", "");
+
+    auto inputs = chat_template_inputs();
+    inputs.messages = json::array({message_tool});
+
+    EXPECT_EQ(
+        "<|im_start|>tool\n"
+        "{\n"
+        "  \"result\": 123\n"
+        "}\n"
+        "<|im_end|>",
+        tmpl.apply(inputs));
+}
+*/
