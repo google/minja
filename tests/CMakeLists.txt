@@ -73,11 +73,11 @@ set(MODEL_IDS
     # For Gated models, you'll need to run `huggingface-cli login` (and be granted access) to download their template.
 
     abacusai/Fewshot-Metamath-OrcaVicuna-Mistral
-    ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
+    # ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
     allenai/Llama-3.1-Tulu-3-405B
     allenai/Llama-3.1-Tulu-3-405B-SFT
     allenai/Llama-3.1-Tulu-3-8B
-    Almawave/Velvet-14B
+    # Almawave/Velvet-14B
     arcee-ai/Virtuoso-Lite
     arcee-ai/Virtuoso-Medium-v2
     arcee-ai/Virtuoso-Small-v2
@@ -106,14 +106,14 @@ set(MODEL_IDS
     deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
     deepseek-ai/deepseek-llm-67b-chat
     deepseek-ai/deepseek-llm-7b-chat
-    deepseek-ai/DeepSeek-R1
+    # deepseek-ai/DeepSeek-R1
     deepseek-ai/DeepSeek-R1-Distill-Llama-70B
     deepseek-ai/DeepSeek-R1-Distill-Llama-8B
     deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
     deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
     deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
     deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
-    deepseek-ai/DeepSeek-R1-Zero
+    # deepseek-ai/DeepSeek-R1-Zero
     deepseek-ai/DeepSeek-V2-Lite
     deepseek-ai/DeepSeek-V2.5
     deepseek-ai/DeepSeek-V3
@@ -121,7 +121,7 @@ set(MODEL_IDS
     dicta-il/dictalm2.0-instruct
     ehristoforu/Falcon3-8B-Franken-Basestruct
     EpistemeAI/Mistral-Nemo-Instruct-12B-Philosophy-Math
-    fireworks-ai/llama-3-firefunction-v2 # https://github.com/google/minja/issues/7
+    # fireworks-ai/llama-3-firefunction-v2 # https://github.com/google/minja/issues/7
     FlofloB/83k_continued_pretraining_Qwen2.5-0.5B-Instruct_Unsloth_merged_16bit
     FlofloB/test_continued_pretraining_Phi-3-mini-4k-instruct_Unsloth_merged_16bit
     godlikehhd/alpaca_data_sampled_ifd_new_5200
@@ -134,9 +134,9 @@ set(MODEL_IDS
     HuggingFaceTB/SmolLM2-1.7B-Instruct
     HuggingFaceTB/SmolLM2-135M-Instruct
     HuggingFaceTB/SmolLM2-360M-Instruct
-    HuggingFaceTB/SmolVLM-256M-Instruct
-    HuggingFaceTB/SmolVLM-500M-Instruct
-    HuggingFaceTB/SmolVLM-Instruct
+    # HuggingFaceTB/SmolVLM-256M-Instruct
+    # HuggingFaceTB/SmolVLM-500M-Instruct
+    # HuggingFaceTB/SmolVLM-Instruct
     huihui-ai/DeepSeek-R1-Distill-Llama-70B-abliterated
     huihui-ai/DeepSeek-R1-Distill-Llama-8B-abliterated
     huihui-ai/DeepSeek-R1-Distill-Qwen-14B-abliterated-v2
@@ -166,7 +166,7 @@ set(MODEL_IDS
     meetkai/functionary-medium-v3.2
     meta-llama/Llama-2-7b-chat-hf
     meta-llama/Llama-3.1-8B-Instruct
-    meta-llama/Llama-3.2-11B-Vision-Instruct
+    # meta-llama/Llama-3.2-11B-Vision-Instruct
     meta-llama/Llama-3.2-1B-Instruct
     meta-llama/Llama-3.2-3B-Instruct
     meta-llama/Llama-3.3-70B-Instruct
@@ -299,13 +299,12 @@ set(MODEL_IDS
     tiiuae/Falcon3-10B-Instruct
     TinyLlama/TinyLlama-1.1B-Chat-v1.0
     UCLA-AGI/Mistral7B-PairRM-SPPO-Iter3
-    unsloth/DeepSeek-R1
+    # unsloth/DeepSeek-R1
     unsloth/DeepSeek-R1-Distill-Llama-8B
     unsloth/DeepSeek-R1-Distill-Llama-8B-unsloth-bnb-4bit
     unsloth/Mistral-Small-24B-Instruct-2501-unsloth-bnb-4bit
     upstage/solar-pro-preview-instruct
     ValiantLabs/Llama3.1-8B-Enigma
-    whyhow-ai/PatientSeek
     xwen-team/Xwen-72B-Chat
     xwen-team/Xwen-7B-Chat
 )
