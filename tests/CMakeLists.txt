@@ -91,9 +91,9 @@ set(MODEL_IDS
     microsoft/Phi-3.5-mini-instruct
     microsoft/Phi-3.5-vision-instruct
     mistralai/Mistral-7B-Instruct-v0.2 # Gated
-    # mistralai/Mistral-Large-Instruct-2407 # Gated
+    mistralai/Mistral-Large-Instruct-2407 # Gated
     mistralai/Mistral-Large-Instruct-2411 # Gated
-    # mistralai/Mistral-Nemo-Instruct-2407 # Gated
+    mistralai/Mistral-Nemo-Instruct-2407 # Gated
     mistralai/Mixtral-8x7B-Instruct-v0.1 # Gated
     mlabonne/AlphaMonarch-7B
     NexaAIDev/Octopus-v2
