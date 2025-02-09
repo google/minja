@@ -389,6 +389,7 @@ TEST(PolyfillTest, ToolPolyfill) {
         tmpl.apply(inputs));
 }
 
+#ifndef _WIN32
 TEST(ToolTest, DeepSeekR1) {
     chat_template tmpl(read_file("tests/deepseek-ai-DeepSeek-R1-Distill-Qwen-32B.jinja"), "", "");
 
@@ -442,6 +443,7 @@ TEST(ToolTest, CommandR7b) {
         "]<|END_TOOL_RESULT|><|END_OF_TURN_TOKEN|><|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>",
         tmpl.apply(inputs));
 }
+#endif // NOT _WIN32
 
 TEST(ToolTest, MistralNemo) {
     chat_template tmpl(read_file("tests/mistralai-Mistral-Nemo-Instruct-2407.jinja"), "", "");
