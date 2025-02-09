@@ -31,11 +31,8 @@ target_link_libraries(test-polyfills PRIVATE
 )
 if (NOT CMAKE_CROSSCOMPILING)
     gtest_discover_tests(test-syntax)
-endif()
-
-if (NOT CMAKE_CROSSCOMPILING)
-    gtest_discover_tests(test-syntax)
-    gtest_discover_tests(test-polyfills)
+    add_test(NAME test-polyfills COMMAND test-polyfills)
+    set_tests_properties(test-polyfills PROPERTIES WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
 add_executable(test-capabilities test-capabilities.cpp)
@@ -82,6 +79,7 @@ set(MODEL_IDS
     MiniMaxAI/MiniMax-Text-01
     indischepartij/MiniCPM-3B-OpenHermes-2.5-v2
     mattshumer/Reflection-Llama-3.1-70B
+    meetkai/functionary-medium-v3.1
     meetkai/functionary-medium-v3.2
     meta-llama/Llama-3.1-8B-Instruct # Gated
     meta-llama/Llama-3.2-3B-Instruct # Gated
