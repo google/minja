@@ -311,10 +311,10 @@ set(MODEL_IDS
     # unsloth/DeepSeek-R1
 )
 
-if(NOT WIN32)
-    list(APPEND MODEL_IDS
+if(WIN32)
+    list(REMOVE_ITEM MODEL_IDS
         # Needs investigation (https://github.com/google/minja/issues/40)
-        
+        CohereForAI/c4ai-command-r7b-12-2024    
     )
 endif()
 
