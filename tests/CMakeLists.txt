@@ -79,7 +79,7 @@ set(MODEL_IDS
     MiniMaxAI/MiniMax-Text-01
     indischepartij/MiniCPM-3B-OpenHermes-2.5-v2
     mattshumer/Reflection-Llama-3.1-70B
-    # meetkai/functionary-medium-v3.1
+    meetkai/functionary-medium-v3.1
     meetkai/functionary-medium-v3.2
     meta-llama/Llama-3.1-8B-Instruct # Gated
     meta-llama/Llama-3.2-3B-Instruct # Gated

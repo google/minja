@@ -336,6 +336,7 @@ class chat_template:
             out = self.template.render(**context)
             out = out.replace("\\u0027", "'")
             out = out.replace('&#34;', '"')
+            out = out.replace('&#39;', "'")
             return out
         except Exception as e1:
             for message in context['messages']:
