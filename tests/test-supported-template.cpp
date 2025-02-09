@@ -128,19 +128,21 @@ int main(int argc, char *argv[]) {
 
         struct minja::chat_template_inputs inputs;
         inputs.messages = ctx.at("messages");
-        inputs.tools = ctx.contains("tools") ? ctx.at("tools") : json();
+        ctx.erase("messages");
+
+        if (ctx.contains("tools")) {
+            inputs.tools = ctx.at("tools");
+            ctx.erase("tools");
+        }
         inputs.add_generation_prompt = ctx.at("add_generation_prompt");
+        ctx.erase("add_generation_prompt");
 
         std::istringstream ss(TEST_DATE);
         std::tm tm = {};
         ss >> std::get_time(&tm, "%Y-%m-%d");
         inputs.now = std::chrono::system_clock::from_time_t(std::mktime(&tm));
 
-        if (ctx.contains("tools")) {
-            inputs.extra_context = json {
-                {"builtin_tools", json::array({"wolfram_alpha", "brave_search"})},
-            };
-        }
+        inputs.extra_context = ctx;
 
         std::string actual;
         try {

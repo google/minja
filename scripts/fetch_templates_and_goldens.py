@@ -43,9 +43,6 @@ def raise_exception(message: str):
     raise ValueError(message)
 
 
-def tojson(eval_ctx, value, indent=None):
-    return json.dumps(value, indent=indent)
-
 TEST_DATE = os.environ.get('TEST_DATE', '2024-07-26')
 
 
@@ -114,16 +111,22 @@ class chat_template:
             # print(out, file=sys.stderr)
             return out
         except BaseException as e:
-            # print(f"{template_file}: Error rendering template with messages {messages}: {e}", file=sys.stderr, flush=True)
+            # print(f"Error rendering template with messages {messages}: {e}", file=sys.stderr, flush=True)
             return ""
 
-    def __init__(self, template, known_eos_tokens, env=None):
+    def __init__(self, template, env=None, filters=None, global_functions=None):
         if not env:
             env = jinja2.Environment(
                 trim_blocks=True,
                 lstrip_blocks=True,
                 extensions=[jinja2.ext.loopcontrols]
             )
+        if filters:
+            for name, func in filters.items():
+                env.filters[name] = func
+        if global_functions:
+            for name, func in global_functions.items():
+                env.globals[name] = func
         self.env = env
         self.template = env.from_string(template)
 
@@ -330,7 +333,9 @@ class chat_template:
                         message['content'] = [{"type": "text", "text": message['content']}]
 
         try:
-            return self.template.render(**context)
+            out = self.template.render(**context)
+            out = out.replace("\\u0027", "'")
+            return out
         except Exception as e1:
             for message in context['messages']:
                 if message.get("content") is None:
@@ -359,21 +364,14 @@ async def handle_chat_template(output_folder, model_id, variant, template_src, c
     async with aiofiles.open(template_file, 'w') as f:
         await f.write(template_src)
 
-    known_eos_tokens = [
-        "<|END_OF_TURN_TOKEN|>",
-        "<end_of_turn>",
-        "</s>",
-        "<|im_end|>",
-        "<|eom_id|>",
-        "<|eot_id|>",
-        "<｜end▁of▁sentence｜>",
-    ]
-
-    template = chat_template(template_src, known_eos_tokens)
-    template.env.filters['safe'] = lambda x: x
-    template.env.filters['tojson'] = tojson
-    template.env.globals['raise_exception'] = raise_exception
-    template.env.globals['strftime_now'] = strftime_now
+    template = chat_template(template_src, 
+                             filters={
+                                    'safe': lambda x: x,
+                             },
+                             global_functions={
+                                    'raise_exception': raise_exception,
+                                    'strftime_now': strftime_now,
+                             })
     caps = template.original_caps
 
     if not context_files:

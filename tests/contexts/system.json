@@ -15,5 +15,6 @@
   ],
   "add_generation_prompt": true,
   "bos_token": "<|startoftext|>",
-  "eos_token": "<|endoftext|>"
+  "eos_token": "<|endoftext|>",
+  "tools_in_user_message": false
 }
