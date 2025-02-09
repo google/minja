@@ -254,10 +254,25 @@ class chat_template {
                       (full[full.size() - 1] == '\n' && (eos_pos_last == full.size() - eos_token_.size() - 1))) {
                     full = full.substr(0, eos_pos_last);
                 }
-                if (full.find(prefix) != 0) {
-                    fprintf(stderr, "Failed to infer a tool call example (possible template bug)\n");
+                size_t common_prefix_length = 0;
+                for (size_t i = 0; i < prefix.size() && i < full.size(); ++i) {
+                    if (prefix[i] != full[i]) {
+                        break;
+                    }
+                    if (prefix[i] == '<') {
+                        // DeepSeek R1's template (as of 20250209) adds a trailing <think> if add_generation_prompt,
+                        // but it removes thinking tags for past messages.
+                        // The prefix and full strings diverge at <think> vs. <｜tool▁calls▁begin｜>, we avoid consuming the leading <.
+                        continue;
+                    }
+                    common_prefix_length = i + 1;
                 }
-                tool_call_example_ = full.substr(prefix.size());
+                auto example = full.substr(common_prefix_length);
+                if (example.find("tool_name") == std::string::npos && example.find("some_value") == std::string::npos) {
+                    fprintf(stderr, "Failed to infer a tool call example (possible template bug)\n");
+                } else {
+                    tool_call_example_ = example;
+                }
             }
         } catch (const std::exception & e) {
             fprintf(stderr, "Failed to generate tool call example: %s\n", e.what());

@@ -243,15 +243,24 @@ class chat_template:
                 }
                 prefix = self.try_raw_render([user_msg], add_generation_prompt=True)
                 full = self.try_raw_render([user_msg, tool_call_msg], add_generation_prompt=False)
-                if not full.startswith(prefix):
-                    for known_eos_token in known_eos_tokens:
-                        prefix = prefix.rstrip()
-                        if prefix.endswith(known_eos_token):
-                            prefix = prefix[:-len(known_eos_token)]
-                            break
-                if not full.startswith(prefix):
+
+                common_prefix_length = 0
+                for i in range(min(len(prefix), len(full))):
+                    if prefix[i] != full[i]:
+                        break
+                    if prefix[i] == '<':
+                        # DeepSeek R1's template (as of 20250209) adds a trailing <think> if add_generation_prompt,
+                        # but it removes thinking tags for past messages.
+                        # The prefix and full strings diverge at <think> vs. <｜tool▁calls▁begin｜>, we avoid consuming the leading <.
+                        continue
+                    common_prefix_length = i + 1
+
+                example = full[common_prefix_length:]
+                if "tool_name" not in example and "some_value" not in example:
                     print("Failed to infer a tool call example (possible template bug)", file=sys.stderr)
-                self.tool_call_example = full[len(prefix):]
+                else:
+                    self.tool_call_example = example
+
         except Exception as e:
             print(f"Failed to generate tool call example: {e}", file=sys.stderr)
 
