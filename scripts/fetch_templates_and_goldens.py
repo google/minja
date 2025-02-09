@@ -283,6 +283,7 @@ class chat_template:
 
     def apply(self, context: dict):
         assert isinstance(context, dict)
+        context = json.loads(json.dumps(context))
 
         caps = self.original_caps
         has_tools = 'tools' in context
