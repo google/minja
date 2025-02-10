@@ -659,6 +659,27 @@ public:
             throw std::runtime_error(out.str());
         }
     }
+    virtual void to_jinja(std::ostringstream & out) const = 0;
+    std::string to_jinja() const {
+        std::ostringstream out;
+        to_jinja(out);
+        return out.str();
+    }
+};
+
+class ParenthesisedExpr : public Expression {
+    std::shared_ptr<Expression> expr;
+public:
+    ParenthesisedExpr(const Location & location, std::shared_ptr<Expression> && e)
+      : Expression(location), expr(std::move(e)) {}
+    Value do_evaluate(const std::shared_ptr<Context> & context) const override {
+        return expr->evaluate(context);
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        out << "(";
+        expr->to_jinja(out);
+        out << ")";
+    }
 };
 
 class VariableExpr : public Expression {
@@ -672,6 +693,9 @@ public:
             return Value();
         }
         return context->at(name);
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        out << name;
     }
 };
 
@@ -863,6 +887,12 @@ public:
         render(out, context);
         return out.str();
     }
+    virtual void to_jinja(std::ostringstream & out) const = 0;
+    std::string to_jinja() const {
+        std::ostringstream out;
+        to_jinja(out);
+        return out.str();
+    }
 };
 
 class SequenceNode : public TemplateNode {
@@ -873,6 +903,9 @@ public:
     void do_render(std::ostringstream & out, const std::shared_ptr<Context> & context) const override {
         for (const auto& child : children) child->render(out, context);
     }
+    void to_jinja(std::ostringstream & out) const override {
+        for (const auto& child : children) child->to_jinja(out);
+    }
 };
 
 class TextNode : public TemplateNode {
@@ -882,12 +915,16 @@ public:
     void do_render(std::ostringstream & out, const std::shared_ptr<Context> &) const override {
       out << text;
     }
+    void to_jinja(std::ostringstream & out) const override {
+        out << text;
+    }
 };
 
 class ExpressionNode : public TemplateNode {
+    std::shared_ptr<ExpressionTemplateToken> token;
     std::shared_ptr<Expression> expr;
 public:
-    ExpressionNode(const Location & location, std::shared_ptr<Expression> && e) : TemplateNode(location), expr(std::move(e)) {}
+    ExpressionNode(std::shared_ptr<ExpressionTemplateToken> && token, std::shared_ptr<Expression> && e) : TemplateNode(token->location), token(std::move(token)), expr(std::move(e)) {}
     void do_render(std::ostringstream & out, const std::shared_ptr<Context> & context) const override {
       if (!expr) throw std::runtime_error("ExpressionNode.expr is null");
       auto result = expr->evaluate(context);
@@ -898,7 +935,12 @@ public:
       } else if (!result.is_null()) {
           out << result.dump();
       }
-  }
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        out << "{{" << (token->pre_space == SpaceHandling::Strip ? "-" : "") << " ";
+        expr->to_jinja(out);
+        out << " " << (token->post_space == SpaceHandling::Strip ? "-" : "") << "}}";
+    }
 };
 
 class IfNode : public TemplateNode {
@@ -1145,6 +1187,15 @@ public:
       }
       return nullptr;
     }
+    void to_jinja(std::ostringstream & out) const override {
+        then_expr->to_jinja(out);
+        out << " if ";
+        condition->to_jinja(out);
+        if (else_expr) {
+            out << " else ";
+            else_expr->to_jinja(out);
+        }
+    }
 };
 
 class LiteralExpr : public Expression {
@@ -1153,6 +1204,9 @@ public:
     LiteralExpr(const Location & location, const Value& v)
       : Expression(location), value(v) {}
     Value do_evaluate(const std::shared_ptr<Context> &) const override { return value; }
+    void to_jinja(std::ostringstream & out) const override {
+        out << value.dump(/* indent= */ -1, /* to_json= */ true);
+    }
 };
 
 class ArrayExpr : public Expression {
@@ -1167,6 +1221,14 @@ public:
             result.push_back(e->evaluate(context));
         }
         return result;
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        out << "[";
+        for (size_t i = 0, n = elements.size(); i < n; ++i) {
+            if (i > 0) out << ", ";
+            elements[i]->to_jinja(out);
+        }
+        out << "]";
     }
 };
 
@@ -1184,6 +1246,16 @@ public:
         }
         return result;
     }
+    void to_jinja(std::ostringstream & out) const override {
+        out << "{";
+        for (size_t i = 0, n = elements.size(); i < n; ++i) {
+            if (i > 0) out << ", ";
+            elements[i].first->to_jinja(out);
+            out << ": ";
+            elements[i].second->to_jinja(out);
+        }
+        out << "}";
+    }
 };
 
 class SliceExpr : public Expression {
@@ -1193,6 +1265,13 @@ public:
       : Expression(location), start(std::move(s)), end(std::move(e)) {}
     Value do_evaluate(const std::shared_ptr<Context> &) const override {
         throw std::runtime_error("SliceExpr not implemented");
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        out << "[";
+        if (start) start->to_jinja(out);
+        out << ":";
+        if (end) end->to_jinja(out);
+        out << "]";
     }
 };
 
@@ -1236,6 +1315,12 @@ public:
           return target_value.get(index_value);
         }
     }
+    void to_jinja(std::ostringstream & out) const override {
+        base->to_jinja(out);
+        out << "[";
+        index->to_jinja(out);
+        out << "]";
+    }
 };
 
 class UnaryOpExpr : public Expression {
@@ -1258,6 +1343,18 @@ public:
 
         }
         throw std::runtime_error("Unknown unary operator");
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        switch (op) {
+            case Op::Plus: out << "+"; break;
+            case Op::Minus: out << "-"; break;
+            case Op::LogicalNot: out << "not "; break;
+            case Op::Expansion: out << "*"; break;
+            case Op::ExpansionDict: out << "**"; break;
+            default:
+                throw std::runtime_error("Unknown unary operator");
+        }
+        expr->to_jinja(out);
     }
 };
 
@@ -1338,6 +1435,34 @@ public:
         } else {
           return do_eval(l);
         }
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        left->to_jinja(out);
+        switch (op) {
+            case Op::StrConcat: out << " ~ "; break;
+            case Op::Add:       out << " + "; break;
+            case Op::Sub:       out << " - "; break;
+            case Op::Mul:       out << " * "; break;
+            case Op::MulMul:    out << " ** "; break;
+            case Op::Div:       out << " / "; break;
+            case Op::DivDiv:    out << " // "; break;
+            case Op::Mod:       out << " % "; break;
+            case Op::Eq:        out << " == "; break;
+            case Op::Ne:        out << " != "; break;
+            case Op::Lt:        out << " < "; break;
+            case Op::Gt:        out << " > "; break;
+            case Op::Le:        out << " <= "; break;
+            case Op::Ge:        out << " >= "; break;
+            case Op::And:       out << " and "; break;
+            case Op::Or:        out << " or "; break;
+            case Op::In:        out << " in "; break;
+            case Op::NotIn:     out << " not in "; break;
+            case Op::Is:        out << " is "; break;
+            case Op::IsNot:     out << " is not "; break;
+            default:
+              throw std::runtime_error("Unknown binary operator");
+        }
+        right->to_jinja(out);
     }
 };
 
@@ -1488,6 +1613,22 @@ public:
         }
         throw std::runtime_error("Unknown method: " + method->get_name());
     }
+    void to_jinja(std::ostringstream & out) const override {
+        object->to_jinja(out);
+        out << ".";
+        out << method->get_name();
+        out << "(";
+        for (size_t i = 0, n = args.args.size(); i < n; ++i) {
+            if (i > 0) out << ", ";
+            args.args[i]->to_jinja(out);
+        }
+        for (size_t i = 0, n = args.kwargs.size(); i < n; ++i) {
+            if (i > 0 || !args.args.empty()) out << ", ";
+            out << args.kwargs[i].first << "=";
+            args.kwargs[i].second->to_jinja(out);
+        }
+        out << ")";
+    }
 };
 
 class CallExpr : public Expression {
@@ -1504,6 +1645,20 @@ public:
         }
         auto vargs = args.evaluate(context);
         return obj.call(context, vargs);
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        object->to_jinja(out);
+        out << "(";
+        for (size_t i = 0, n = args.args.size(); i < n; ++i) {
+            if (i > 0) out << ", ";
+            args.args[i]->to_jinja(out);
+        }
+        for (size_t i = 0, n = args.kwargs.size(); i < n; ++i) {
+            if (i > 0 || !args.args.empty()) out << ", ";
+            out << args.kwargs[i].first << "=";
+            args.kwargs[i].second->to_jinja(out);
+        }
+        out << ")";
     }
 };
 
@@ -1539,6 +1694,12 @@ public:
 
     void prepend(std::shared_ptr<Expression> && e) {
         parts.insert(parts.begin(), std::move(e));
+    }
+    void to_jinja(std::ostringstream & out) const override {
+        for (size_t i = 0, n = parts.size(); i < n; ++i) {
+            if (i > 0) out << " | ";
+            parts[i]->to_jinja(out);
+        }
     }
 };
 
@@ -2091,7 +2252,7 @@ private:
         if (!expr) throw std::runtime_error("Expected expression in braced expression");
 
         if (!consumeToken(")").empty()) {
-            return expr;  // Drop the parentheses
+            return std::make_shared<ParenthesisedExpr>(get_location(), std::move(expr));
         }
 
         std::vector<std::shared_ptr<Expression>> tuple;
@@ -2377,21 +2538,20 @@ private:
           const auto start = it;
           const auto & token = *(it++);
           if (auto if_token = dynamic_cast<IfTemplateToken*>(token.get())) {
-              std::vector<std::pair<std::shared_ptr<Expression>, std::shared_ptr<TemplateNode>>> cascade;
-              cascade.emplace_back(std::move(if_token->condition), parseTemplate(begin, it, end));
+              std::vector<std::pair<std::shared_ptr<TemplateToken>, std::shared_ptr<TemplateNode>>> cascade;
+              cascade.emplace_back(std::move(if_token), parseTemplate(begin, it, end));
 
               while (it != end && (*it)->type == TemplateToken::Type::Elif) {
-                  auto elif_token = dynamic_cast<ElifTemplateToken*>((*(it++)).get());
-                  cascade.emplace_back(std::move(elif_token->condition), parseTemplate(begin, it, end));
+                  cascade.emplace_back(std::move(*(it++)), parseTemplate(begin, ++it, end));
               }
 
               if (it != end && (*it)->type == TemplateToken::Type::Else) {
-                cascade.emplace_back(nullptr, parseTemplate(begin, ++it, end));
+                cascade.emplace_back(std::move(*(it++)), parseTemplate(begin, ++it, end));
               }
               if (it == end || (*(it++))->type != TemplateToken::Type::EndIf) {
                   throw unterminated(**start);
               }
-              children.emplace_back(std::make_shared<IfNode>(token->location, std::move(cascade)));
+              children.emplace_back(std::make_shared<IfNode>(std::move(token), std::move(cascade)));
           } else if (auto for_token = dynamic_cast<ForTemplateToken*>(token.get())) {
               auto body = parseTemplate(begin, it, end);
               auto else_body = std::shared_ptr<TemplateNode>();
@@ -2442,7 +2602,7 @@ private:
               }
               children.emplace_back(std::make_shared<TextNode>(token->location, text));
           } else if (auto expr_token = dynamic_cast<ExpressionTemplateToken*>(token.get())) {
-              children.emplace_back(std::make_shared<ExpressionNode>(token->location, std::move(expr_token->expr)));
+              children.emplace_back(std::make_shared<ExpressionNode>(std::move(token), std::move(expr_token->expr)));
           } else if (auto set_token = dynamic_cast<SetTemplateToken*>(token.get())) {
             if (set_token->value) {
               children.emplace_back(std::make_shared<SetNode>(token->location, set_token->ns, set_token->var_names, std::move(set_token->value)));
