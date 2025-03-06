@@ -263,6 +263,7 @@ set(MODEL_IDS
     Qwen/Qwen2.5-VL-3B-Instruct
     Qwen/Qwen2.5-VL-72B-Instruct
     Qwen/Qwen2.5-VL-7B-Instruct
+    Qwen/QwQ-32B
     Qwen/QwQ-32B-Preview
     rubenroy/Zurich-14B-GCv2-5m
     rubenroy/Zurich-7B-GCv2-5m
