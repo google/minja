@@ -74,6 +74,13 @@ TEST(SyntaxTest, SimpleCases) {
         return testing::Throws<std::runtime_error>(Property(&std::runtime_error::what, testing::HasSubstr(expected_substr)));
     };
 
+    EXPECT_EQ("a", render("{{ ' a '.strip() }}", {}, {}));
+    EXPECT_EQ("a ", render("{{ ' a '.lstrip() }}", {}, {}));
+    EXPECT_EQ(" a", render("{{ ' a '.rstrip() }}", {}, {}));
+    EXPECT_EQ("bcXYZab", render("{{ 'abcXYZabc'.strip('ac') }}", {}, {}));
+
+    EXPECT_EQ(R"(["a", "b"])", render("{{ 'a b'.split(' ') | tojson }}", {}, {}));
+
     EXPECT_EQ(
         "Ok",
         render("{{ 'ok'.capitalize() }}", {}, {}));
