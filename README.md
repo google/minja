@@ -166,6 +166,8 @@ Main limitations (non-exhaustive list):
         ctest --test-dir build -j --output-on-failure
     ```
 
+- Bonus: install `clang-tidy` before building (on MacOS: `brew install llvm ; sudo ln -s "$(brew --prefix llvm)/bin/clang-tidy" "/usr/local/bin/clang-tidy"`)
+
 - Fuzzing tests
 
     - Note: `fuzztest` **[doesn't work](https://github.com/google/fuzztest/issues/179)** natively on Windows or MacOS.
