@@ -20,7 +20,6 @@ if (CLANG_TIDY_EXE)
     set(CMAKE_CXX_CLANG_TIDY
         clang-tidy;
         -header-filter=include/minja/.*;
-        -exclude-header-filter=gtest.*;
         # https://clang.llvm.org/extra/clang-tidy/checks/list.html
         # TODO: enable more / disable less checks: google-*,misc-*,modernize-*,performance-*
         -checks=-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguideline-*,bugprone-*,-bugprone-suspicious-include,-bugprone-assignment-in-if-condition,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,-bugprone-inc-dec-in-conditions,-bugprone-exception-escape;
