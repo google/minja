@@ -444,13 +444,12 @@ class chat_template {
                 if (polyfill_tool_responses && role == "tool") {
                     message["role"] = "user";
                     auto obj = json {
-                        {"tool_response", {
-                            {"content", message.at("content")},
-                        }},
+                        {"tool_response", json::object()},
                     };
                     if (message.contains("name")) {
-                        obj["tool_response"]["name"] = message.at("name");
+                        obj["tool_response"]["tool"] = message.at("name");
                     }
+                    obj["tool_response"]["content"] = message.at("content");
                     if (message.contains("tool_call_id")) {
                         obj["tool_response"]["tool_call_id"] = message.at("tool_call_id");
                     }
