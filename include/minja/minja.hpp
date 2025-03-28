@@ -8,14 +8,25 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <cmath>
+#include <exception>
+#include <functional>
 #include <iostream>
-#include <string>
-#include <vector>
-#include <regex>
+#include <iterator>
+#include <limits>
+#include <map>
 #include <memory>
-#include <stdexcept>
+#include <regex>
 #include <sstream>
+#include <string>
+#include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -2461,7 +2472,7 @@ private:
                 static std::regex leading_space_regex(R"(^\s+)");
                 text = std::regex_replace(text, leading_space_regex, "");
               } else if (options.trim_blocks && (it - 1) != begin && !dynamic_cast<ExpressionTemplateToken*>((*(it - 2)).get())) {
-                if (text.length() > 0 && text[0] == '\n') {
+                if (!text.empty() && text[0] == '\n') {
                   text.erase(0, 1);
                 }
               }
@@ -2539,7 +2550,7 @@ public:
         TemplateTokenIterator begin = tokens.begin();
         auto it = begin;
         TemplateTokenIterator end = tokens.end();
-        return parser.parseTemplate(begin, it, end, /* full= */ true);
+        return parser.parseTemplate(begin, it, end, /* fully= */ true);
     }
 };
 
@@ -2578,7 +2589,7 @@ inline std::shared_ptr<Context> Context::builtins() {
     throw std::runtime_error(args.at("message").get<std::string>());
   }));
   globals.set("tojson", simple_function("tojson", { "value", "indent" }, [](const std::shared_ptr<Context> &, Value & args) {
-    return Value(args.at("value").dump(args.get<int64_t>("indent", -1), /* tojson= */ true));
+    return Value(args.at("value").dump(args.get<int64_t>("indent", -1), /* to_json= */ true));
   }));
   globals.set("items", simple_function("items", { "object" }, [](const std::shared_ptr<Context> &, Value & args) {
     auto items = Value::array();
@@ -2600,7 +2611,7 @@ inline std::shared_ptr<Context> Context::builtins() {
   globals.set("last", simple_function("last", { "items" }, [](const std::shared_ptr<Context> &, Value & args) {
     auto items = args.at("items");
     if (!items.is_array()) throw std::runtime_error("object is not a list");
-    if (items.size() == 0) return Value();
+    if (items.empty()) return Value();
     return items.at(items.size() - 1);
   }));
   globals.set("trim", simple_function("trim", { "text" }, [](const std::shared_ptr<Context> &, Value & args) {
