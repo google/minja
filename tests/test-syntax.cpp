@@ -88,7 +88,7 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ(
         "ok",
         render("{# Hey\nHo #}{#- Multiline...\nComments! -#}{{ 'ok' }}{# yo #}", {}, {}));
-    
+
     EXPECT_EQ(
         "    b",
         render(R"(  {% set _ = 1 %}    {% set _ = 2 %}b)", {}, lstrip_trim_blocks));
@@ -130,6 +130,9 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ(
         "abc",
         render("{{ 'AbC' | lower }}", {}, {}));
+    EXPECT_EQ(
+        "ME",
+        render("{{ 'me' | upper }}", {}, {}));
     EXPECT_EQ(
         "the default1",
         render("{{ foo | default('the default') }}{{ 1 | default('nope') }}", {}, {}));
