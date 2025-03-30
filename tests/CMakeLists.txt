@@ -137,6 +137,7 @@ set(MODEL_IDS
     huihui-ai/Qwen2.5-14B-Instruct-1M-abliterated
     ibm-granite/granite-3.1-8b-instruct
     Ihor/Text2Graph-R1-Qwen2.5-0.5b
+    inclusionAI/Ling-Coder-lite
     indischepartij/MiniCPM-3B-OpenHermes-2.5-v2
     Infinigence/Megrez-3B-Instruct
     inflatebot/MN-12B-Mag-Mell-R1
