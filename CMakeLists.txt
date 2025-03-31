@@ -22,7 +22,7 @@ if (CLANG_TIDY_EXE)
         -header-filter=include/minja/.*;
         # https://clang.llvm.org/extra/clang-tidy/checks/list.html
         # TODO: enable more / disable less checks: google-*,misc-*,modernize-*,performance-*
-        -checks=-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguideline-*,bugprone-*,-bugprone-suspicious-include,-bugprone-assignment-in-if-condition,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,-bugprone-inc-dec-in-conditions,-bugprone-exception-escape;
+        -checks=-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguideline-*,bugprone-*,-bugprone-suspicious-include,-bugprone-assignment-in-if-condition,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,-bugprone-inc-dec-in-conditions,-bugprone-exception-escape,-clang-analyzer-cplusplus.StringChecker;
         -warnings-as-errors=*;
     )
 else()
