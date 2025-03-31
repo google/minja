@@ -84,10 +84,10 @@ static json caps_to_json(const minja::chat_template_caps &caps) {
 int main(int argc, char *argv[]) {
     if (argc != 5)
     {
-        std::cerr << "Usage: " << argv[0] << " <template_file.jinja> <template_file.jinja.caps.json> <context_file.json> <golden_file.txt>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <template_file.jinja> <template_file.jinja.caps.json> <context_file.json> <golden_file.txt>" << "\n";
         for (int i = 0; i < argc; i++)
         {
-            std::cerr << "argv[" << i << "] = " << argv[i] << std::endl;
+            std::cerr << "argv[" << i << "] = " << argv[i] << "\n";
         }
         return 1;
     }
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 
         if (ctx_file == "n/a")
         {
-            std::cout << "# Skipping template: " << tmpl_file << "\n" << tmpl_str << std::endl;
+            std::cout << "# Skipping template: " << tmpl_file << "\n" << tmpl_str << "\n";
             return 127;
         }
 
@@ -121,8 +121,8 @@ int main(int argc, char *argv[]) {
         try {
             expected = minja::normalize_newlines(read_file(golden_file));
         } catch (const std::exception &e) {
-            std::cerr << "Failed to read golden file: " << golden_file << std::endl;
-            std::cerr << e.what() << std::endl;
+            std::cerr << "Failed to read golden file: " << golden_file << "\n";
+            std::cerr << e.what() << "\n";
             return 1;
         }
 
@@ -148,14 +148,14 @@ int main(int argc, char *argv[]) {
         try {
             actual = tmpl.apply(inputs);
         } catch (const std::exception &e) {
-            std::cerr << "Error applying template: " << e.what() << std::endl;
+            std::cerr << "Error applying template: " << e.what() << "\n";
             return 1;
         }
 
         if (expected != actual) {
             if (getenv("WRITE_GOLDENS")) {
                 write_file(golden_file, actual);
-                std::cerr << "Updated golden file: " << golden_file << std::endl;
+                std::cerr << "Updated golden file: " << golden_file << "\n";
             } else {
                 assert_equals(expected, actual);
             }
@@ -169,10 +169,10 @@ int main(int argc, char *argv[]) {
         assert_equals(expected_caps, caps);
 #endif
 
-        std::cout << "Test passed successfully." << std::endl;
+        std::cout << "Test passed successfully." << "\n";
         return 0;
     } catch (const std::exception &e) {
-        std::cerr << "Test failed: " << e.what() << std::endl;
+        std::cerr << "Test failed: " << e.what() << "\n";
         return 1;
     }
 }

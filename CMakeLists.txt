@@ -13,6 +13,22 @@ project(minja VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Test if clang-tidy is available
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+if (CLANG_TIDY_EXE)
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+    set(CMAKE_CXX_CLANG_TIDY
+        clang-tidy;
+        -header-filter=include/minja/.*;
+        # https://clang.llvm.org/extra/clang-tidy/checks/list.html
+        # TODO: enable more / disable less checks: google-*,misc-*,modernize-*,performance-*
+        -checks=-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguideline-*,bugprone-*,-bugprone-suspicious-include,-bugprone-assignment-in-if-condition,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,-bugprone-inc-dec-in-conditions,-bugprone-exception-escape,-clang-analyzer-cplusplus.StringChecker;
+        -warnings-as-errors=*;
+    )
+else()
+    message(STATUS "clang-tidy not found")
+endif()
+
 if (MSVC)
     set(MINJA_FUZZTEST_ENABLED_DEFAULT OFF)
     set(MINJA_USE_VENV_DEFAULT OFF)
