@@ -65,9 +65,5 @@ static std::string render(const std::string & template_str, const chat_template_
 }
 
 TEST(ChatTemplateTest, SimpleCases) {
-#ifdef _WIN32
-    fprintf(stderr, "Skipping test on Windows\n");
-#else
     EXPECT_THAT(render("{{ strftime_now('%Y-%m-%d %H:%M:%S') }}", {}, {}), MatchesRegex(R"([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})"));
-#endif
 }
