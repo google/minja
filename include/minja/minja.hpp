@@ -233,7 +233,7 @@ public:
       }
     } else if (is_object()) {
       if (!index.is_hashable())
-        throw std::runtime_error("Unashable type: " + index.dump());
+        throw std::runtime_error("Unhashable type: " + index.dump());
       auto it = object_->find(index.primitive_);
       if (it == object_->end())
         throw std::runtime_error("Key not found: " + index.dump());
@@ -252,7 +252,7 @@ public:
       auto index = key.get<int>();
       return array_->at(index < 0 ? array_->size() + index : index);
     } else if (object_) {
-      if (!key.is_hashable()) throw std::runtime_error("Unashable type: " + dump());
+      if (!key.is_hashable()) throw std::runtime_error("Unhashable type: " + dump());
       auto it = object_->find(key.primitive_);
       if (it == object_->end()) return Value();
       return it->second;
@@ -261,7 +261,7 @@ public:
   }
   void set(const Value& key, const Value& value) {
     if (!object_) throw std::runtime_error("Value is not an object: " + dump());
-    if (!key.is_hashable()) throw std::runtime_error("Unashable type: " + dump());
+    if (!key.is_hashable()) throw std::runtime_error("Unhashable type: " + dump());
     (*object_)[key.primitive_] = value;
   }
   Value call(const std::shared_ptr<Context> & context, ArgumentsValue & args) const {
@@ -398,7 +398,7 @@ public:
       }
       return false;
     } else if (object_) {
-      if (!value.is_hashable()) throw std::runtime_error("Unashable type: " + value.dump());
+      if (!value.is_hashable()) throw std::runtime_error("Unhashable type: " + value.dump());
       return object_->find(value.primitive_) != object_->end();
     } else {
       throw std::runtime_error("contains can only be called on arrays and objects: " + dump());
@@ -416,7 +416,7 @@ public:
     return const_cast<Value*>(this)->at(index);
   }
   Value& at(const Value & index) {
-    if (!index.is_hashable()) throw std::runtime_error("Unashable type: " + dump());
+    if (!index.is_hashable()) throw std::runtime_error("Unhashable type: " + dump());
     if (is_array()) return array_->at(index.get<int>());
     if (is_object()) return object_->at(index.primitive_);
     throw std::runtime_error("Value is not an array or object: " + dump());
