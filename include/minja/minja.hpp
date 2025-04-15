@@ -2543,13 +2543,130 @@ private:
     }
 
 public:
+    static std::shared_ptr<TemplateNode> parse(const std::string& template_str) {
+      Parser parser(std::make_shared<std::string>(normalize_newlines(template_str)), options);
+      auto tokens = parser.tokenize();
+      TemplateTokenIterator begin = tokens.begin();
+      auto it = begin;
+      TemplateTokenIterator end = tokens.end();
+      return parser.parseTemplate(begin, it, end, /* fully= */ true);
+    }
 
     static std::shared_ptr<TemplateNode> parse(const std::string& template_str, const Options & options) {
-        Parser parser(std::make_shared<std::string>(normalize_newlines(template_str)), options);
+        auto input = std::make_shared<std::string>(normalize_newlines(template_str));
+        Parser parser(input, options);
         auto tokens = parser.tokenize();
-        TemplateTokenIterator begin = tokens.begin();
-        auto it = begin;
-        TemplateTokenIterator end = tokens.end();
+        std::ostringstream out;
+        // size_t last_pos = 0u;
+        int indent = 0;
+
+        // Can only reformat tokens that are stuck together (no text token between them), or with spacey text if they have pre/post elision marks.
+        // A token may pre-decrement indent (e.g. else, end*) and or post-increment indent (e.g. if, else, for).
+
+        // Cases:
+        // - block block -> block- text(indenting) -block
+        // - block text(stripped) block -> block- text(indented) -block
+        // - block text(other) block -> unchanged
+        TemplateTokenVector formatted_tokens;
+
+        // for (size_t i = 0; i < tokens.size(); i++) {
+        //   const auto & token = tokens[i];
+        for (auto & token : tokens) {
+
+          auto pre_deintent = false;
+          auto post_indent = false;
+          switch (token->type) {
+            case TemplateToken::Type::If:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::Else:
+              pre_deintent = true;
+              post_indent = true;
+              break;
+            case TemplateToken::Type::Elif:
+              pre_deintent = true;
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndIf:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::For:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndFor:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::Generation:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndGeneration:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::Set:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndSet:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::Macro:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndMacro:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::Filter:
+              post_indent = true;
+              break;
+            case TemplateToken::Type::EndFilter:
+              pre_deintent = true;
+              break;
+            case TemplateToken::Type::Text:
+            case TemplateToken::Type::Expression:
+            case TemplateToken::Type::Break:
+            case TemplateToken::Type::Continue:
+            case TemplateToken::Type::Comment:
+              break;
+            default:
+              throw std::runtime_error("Unexpected token type");
+          }
+          if (pre_deindent) {
+            indent--;
+          }
+          if (token->type != TemplateToken::Type::Text && !formatted_tokens.empty()) {
+            if (formatted_tokens.back()->type != TemplateToken::Type::Text) {
+              // Block after block.
+              auto & last_token = formatted_tokens.back();
+              last_token->post_space = SpaceHandling::Strip;
+              token->pre_space = SpaceHandling::Strip;
+
+              std::string indenting = "\n";
+              for (auto i = 0u; i < indent; i++) {
+                indenting += "  ";
+              }
+              formatted_tokens.push_back(std::make_shared<TextTemplateToken>(location, SpaceHandling::Keep, SpaceHandling::Keep, indenting));
+              formatted_tokens.push_back(token);
+            } else if (auto text_token = dynamic_cast<TextTemplateToken*>(token.get())) {
+              auto stripped = strip(text_token->text);
+              if (stripped == text_token->text) {
+                  
+              }
+              // Block after text
+            }
+          } else {
+            formatted_tokens.push_back(token);
+          }
+          if (post_indent) {
+            indent++;
+          }
+        }
+        std::ostringstream out;
+        for (const auto & token : formatted_tokens) {
+          if (auto text_token = dynamic_cast<TextTemplateToken*>(token.get())) {
+            out << text_token->text
+          } else {
+            // TODO: get end position
+          }
+        }
         return parser.parseTemplate(begin, it, end, /* fully= */ true);
     }
 };
