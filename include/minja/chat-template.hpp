@@ -13,10 +13,12 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <ctime>
 #include <exception>
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

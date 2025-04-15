@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <cmath>
 #include <exception>
 #include <functional>
@@ -676,8 +677,8 @@ public:
 class VariableExpr : public Expression {
     std::string name;
 public:
-    VariableExpr(const Location & location, const std::string& n)
-      : Expression(location), name(n) {}
+    VariableExpr(const Location & loc, const std::string& n)
+      : Expression(loc), name(n) {}
     std::string get_name() const { return name; }
     Value do_evaluate(const std::shared_ptr<Context> & context) const override {
         if (!context->contains(name)) {
