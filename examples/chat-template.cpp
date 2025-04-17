@@ -6,7 +6,7 @@
     https://opensource.org/licenses/MIT.
 */
 // SPDX-License-Identifier: MIT
-#include <chat-template.hpp>
+#include <minja/chat-template.hpp>
 #include <iostream>
 
 using json = nlohmann::ordered_json;

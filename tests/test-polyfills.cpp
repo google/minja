@@ -6,14 +6,14 @@
     https://opensource.org/licenses/MIT.
 */
 // SPDX-License-Identifier: MIT
-#include "minja.hpp"
+#include "minja/minja.hpp"
 #include <gtest/gtest.h>
 #include <gmock/gmock-matchers.h>
 
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "chat-template.hpp"
+#include "minja/chat-template.hpp"
 
 using namespace minja;
 

@@ -6,7 +6,7 @@
     https://opensource.org/licenses/MIT.
 */
 // SPDX-License-Identifier: MIT
-#include <minja.hpp>
+#include <minja/minja.hpp>
 #include <iostream>
 
 using json = nlohmann::ordered_json;

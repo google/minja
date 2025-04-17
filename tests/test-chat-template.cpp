@@ -7,7 +7,7 @@
     https://opensource.org/licenses/MIT.
 */
 // SPDX-License-Identifier: MIT
-#include "chat-template.hpp"
+#include "minja/chat-template.hpp"
 #include "gtest/gtest.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock-matchers.h>

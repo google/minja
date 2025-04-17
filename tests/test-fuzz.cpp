@@ -9,8 +9,8 @@
 #include <fuzztest/fuzztest.h>
 #include <fuzztest/grammars/json_grammar.h>
 #include <gtest/gtest.h>
-#include <minja.hpp>
-#include <chat-template.hpp>
+#include <minja/minja.hpp>
+#include <minja/chat-template.hpp>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
