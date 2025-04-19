@@ -11,6 +11,8 @@ cmake_policy(SET CMP0135 NEW) # https://cmake.org/cmake/help/latest/policy/CMP01
 
 project(minja VERSION 1.0.0 LANGUAGES CXX)
 
+add_library(minja INTERFACE)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Test if clang-tidy is available
@@ -36,6 +38,8 @@ else()
     set(MINJA_FUZZTEST_ENABLED_DEFAULT ON)
     set(MINJA_USE_VENV_DEFAULT ON)
 endif()
+option(MINJA_TEST_ENABLED           "minja: Build with test(python interpreter required)"   ON)
+option(MINJA_EXAMPLE_ENABLED        "minja: Build with example"                             ON)
 option(MINJA_FUZZTEST_ENABLED       "minja: fuzztests enabled"                              MINJA_FUZZTEST_ENABLED_DEFAULT)
 option(MINJA_FUZZTEST_FUZZING_MODE  "minja: run fuzztests (if enabled) in fuzzing mode"     OFF)
 option(MINJA_USE_VENV               "minja: use Python venv for build"                      MINJA_USE_VENV_DEFAULT)
@@ -53,15 +57,20 @@ include(FetchContent)
 # Fetch nlohmann/json
 FetchContent_Declare(json URL https://github.com/nlohmann/json/archive/refs/heads/develop.zip)
 FetchContent_MakeAvailable(json)
+target_link_libraries(minja INTERFACE nlohmann_json::nlohmann_json)
 
-if (MINJA_FUZZTEST_ENABLED)
-    # Fetch google/fuzztest (and indirectly, gtest)
-    FetchContent_Declare(fuzztest URL https://github.com/google/fuzztest/archive/refs/heads/main.zip)
-    FetchContent_MakeAvailable(fuzztest)
-else()
-    # Fetch gtest
-    FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/heads/main.zip)
-    FetchContent_MakeAvailable(googletest)
+if(MINJA_TEST_ENABLED)
+    if (MINJA_FUZZTEST_ENABLED)
+        # Fetch google/fuzztest (and indirectly, gtest)
+        FetchContent_Declare(fuzztest URL https://github.com/google/fuzztest/archive/refs/heads/main.zip)
+        FetchContent_MakeAvailable(fuzztest)
+        message(STATUS "${fuzztest_BINARY_DIR}: ${${fuzztest_BINARY_DIR}}")
+    else()
+        # Fetch gtest
+        set(INSTALL_GTEST OFF)
+        FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/heads/main.zip)
+        FetchContent_MakeAvailable(googletest)
+    endif()
 endif()
 
 # Use ccache if installed
@@ -77,25 +86,27 @@ if (NOT XCODE AND NOT MSVC AND NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-set(Python_FIND_STRATEGY LOCATION CACHE STRING "Python find strategy" FORCE)
-find_package(Python COMPONENTS Interpreter REQUIRED)
-if(MINJA_USE_VENV)
-    # Create a python venv w/ the required dependencies
-    set(VENV_DIR "${CMAKE_BINARY_DIR}/venv")
-    if(WIN32)
-        set(VENV_PYTHON "${VENV_DIR}/Scripts/python.exe")
-    else()
-        set(VENV_PYTHON "${VENV_DIR}/bin/python")
+if(MINJA_TEST_ENABLED)
+    set(Python_FIND_STRATEGY LOCATION CACHE STRING "Python find strategy" FORCE)
+    find_package(Python COMPONENTS Interpreter REQUIRED)
+    if(MINJA_USE_VENV)
+        # Create a python venv w/ the required dependencies
+        set(VENV_DIR "${CMAKE_BINARY_DIR}/venv")
+        if(WIN32)
+            set(VENV_PYTHON "${VENV_DIR}/Scripts/python.exe")
+        else()
+            set(VENV_PYTHON "${VENV_DIR}/bin/python")
+        endif()
+        execute_process(
+            COMMAND ${Python_EXECUTABLE} -m venv "${VENV_DIR}"
+            COMMAND_ERROR_IS_FATAL ANY)
+        execute_process(
+            COMMAND ${VENV_PYTHON} -m pip install -r "${CMAKE_SOURCE_DIR}/requirements.txt"
+            COMMAND_ERROR_IS_FATAL ANY)
+        set(Python_EXECUTABLE "${VENV_PYTHON}" CACHE FILEPATH "Path to Python executable in venv" FORCE)
     endif()
-    execute_process(
-        COMMAND ${Python_EXECUTABLE} -m venv "${VENV_DIR}"
-        COMMAND_ERROR_IS_FATAL ANY)
-    execute_process(
-        COMMAND ${VENV_PYTHON} -m pip install -r "${CMAKE_SOURCE_DIR}/requirements.txt"
-        COMMAND_ERROR_IS_FATAL ANY)
-    set(Python_EXECUTABLE "${VENV_PYTHON}" CACHE FILEPATH "Path to Python executable in venv" FORCE)
+    message(STATUS "Python executable: ${Python_EXECUTABLE}")
 endif()
-message(STATUS "Python executable: ${Python_EXECUTABLE}")
 
 find_program(CPPCHECK cppcheck)
 if(CPPCHECK)
@@ -103,14 +114,29 @@ if(CPPCHECK)
   message(STATUS "cppcheck found: ${CPPCHECK}")
 endif()
 
-message(STATUS "${fuzztest_BINARY_DIR}: ${${fuzztest_BINARY_DIR}}")
-include_directories(
-    include/minja
-    ${json_SOURCE_DIR}/include
+include(GNUInstallDirs)
+target_include_directories(minja INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-add_subdirectory(examples)
+install(FILES
+  ${PROJECT_SOURCE_DIR}/include/minja/minja.hpp
+  ${PROJECT_SOURCE_DIR}/include/minja/chat-template.hpp
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/minja
+)
+install(
+  TARGETS minja
+  EXPORT "${TARGETS_EXPORT_NAME}"
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/minja  # for downstream projects
+)
 
-enable_testing()
-include(GoogleTest)
-add_subdirectory(tests)
+if(MINJA_EXAMPLE_ENABLED)
+    add_subdirectory(examples)
+endif()
+
+if(MINJA_TEST_ENABLED)
+    enable_testing()
+    include(GoogleTest)
+    add_subdirectory(tests)
+endif()
