@@ -67,6 +67,7 @@ if(MINJA_TEST_ENABLED)
         message(STATUS "${fuzztest_BINARY_DIR}: ${${fuzztest_BINARY_DIR}}")
     else()
         # Fetch gtest
+        set(INSTALL_GTEST OFF)
         FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/heads/main.zip)
         FetchContent_MakeAvailable(googletest)
     endif()
