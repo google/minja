@@ -33,6 +33,14 @@ It is **not general purpose**: it includes just what’s needed for actual chat 
 
 This library is header-only: just copy the header(s) you need, make sure to use a compiler that handles C++17 and you're done. Oh, and get [nlohmann::json](https://github.com/nlohmann/json) in your include path.
 
+If your project is based on [cmake](https://cmake.org/), can simply import by using `FetchContent`.
+```
+FetchContent_Declare(minja GIT_REPOSITORY "https://github.com/google/minja")
+FetchContent_MakeAvailable(minja)
+
+target_link_libraries(<YOUR_TARGET> PRIVATE minja)
+```
+
 See API in [minja/minja.hpp](./include/minja/minja.hpp) and [minja/chat-template.hpp](./include/minja/chat-template.hpp) (experimental).
 
 For raw Jinja templating (see [examples/raw.cpp](./examples/raw.cpp)):
