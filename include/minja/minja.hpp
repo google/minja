@@ -1201,9 +1201,9 @@ public:
 
 class SliceExpr : public Expression {
 public:
-    std::shared_ptr<Expression> start, end;
-    SliceExpr(const Location & loc, std::shared_ptr<Expression> && s, std::shared_ptr<Expression> && e)
-      : Expression(loc), start(std::move(s)), end(std::move(e)) {}
+    std::shared_ptr<Expression> start, end, step;
+    SliceExpr(const Location & loc, std::shared_ptr<Expression> && s, std::shared_ptr<Expression> && e, std::shared_ptr<Expression> && st = nullptr)
+      : Expression(loc), start(std::move(s)), end(std::move(e)), step(std::move(st)) {}
     Value do_evaluate(const std::shared_ptr<Context> &) const override {
         throw std::runtime_error("SliceExpr not implemented");
     }
@@ -2085,8 +2085,14 @@ private:
         if (!consumeToken("[").empty()) {
             std::shared_ptr<Expression> index;
             if (!consumeToken(":").empty()) {
-              auto slice_end = parseExpression();
-              index = std::make_shared<SliceExpr>(slice_end->location, nullptr, std::move(slice_end));
+              if (!consumeToken(":").empty()) { //case [::N]
+                auto step = parseExpression();
+                index = std::make_shared<SliceExpr>(step->location, nullptr, nullptr, std::move(step));
+              }
+              else {
+                auto slice_end = parseExpression();
+                index = std::make_shared<SliceExpr>(slice_end->location, nullptr, std::move(slice_end));
+              }
             } else {
               auto slice_start = parseExpression();
               if (!consumeToken(":").empty()) {
