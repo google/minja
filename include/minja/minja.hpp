@@ -1201,9 +1201,9 @@ public:
 
 class SliceExpr : public Expression {
 public:
-    std::shared_ptr<Expression> start, end;
-    SliceExpr(const Location & loc, std::shared_ptr<Expression> && s, std::shared_ptr<Expression> && e)
-      : Expression(loc), start(std::move(s)), end(std::move(e)) {}
+    std::shared_ptr<Expression> start, end, step;
+    SliceExpr(const Location & loc, std::shared_ptr<Expression> && s, std::shared_ptr<Expression> && e, std::shared_ptr<Expression> && st = nullptr)
+      : Expression(loc), start(std::move(s)), end(std::move(e)), step(std::move(st)) {}
     Value do_evaluate(const std::shared_ptr<Context> &) const override {
         throw std::runtime_error("SliceExpr not implemented");
     }
@@ -1220,19 +1220,54 @@ public:
         if (!index) throw std::runtime_error("SubscriptExpr.index is null");
         auto target_value = base->evaluate(context);
         if (auto slice = dynamic_cast<SliceExpr*>(index.get())) {
-          auto start = slice->start ? slice->start->evaluate(context).get<int64_t>() : 0;
-          auto end = slice->end ? slice->end->evaluate(context).get<int64_t>() : (int64_t) target_value.size();
+          int64_t step = slice->step ? slice->step->evaluate(context).get<int64_t>() : 1;
+          if (step != 1 && step != -1) {
+            throw std::runtime_error("Slicing with step other than 1 or -1 is not supported");
+          }
+          bool reverse = step == -1;
+
+          size_t len = target_value.size();
+          int64_t start = slice->start ? slice->start->evaluate(context).get<int64_t>() : (reverse ? len - 1 : 0);
+          int64_t end = slice->end ? slice->end->evaluate(context).get<int64_t>() : (reverse ? -1 : len);
+
+          if (slice->start && start < 0) {
+            start = (int64_t)len + start;
+          }
+          if (slice->end && end < 0) {
+            end = (int64_t)len + end;
+          }
+
           if (target_value.is_string()) {
             std::string s = target_value.get<std::string>();
-            if (start < 0) start = s.size() + start;
-            if (end < 0) end = s.size() + end;
-            return s.substr(start, end - start);
-          } else if (target_value.is_array()) {
-            if (start < 0) start = target_value.size() + start;
-            if (end < 0) end = target_value.size() + end;
+
+            std::string result_str;
+            if (reverse) {
+              for (int64_t i = start; i > end; --i) {
+                if (i >= 0 && i < (int64_t)len) {
+                  result_str += s[i];
+                } else if (i < 0) {
+                  break;
+                }
+              }
+            } else {
+              result_str = s.substr(start, end - start);
+            }
+            return result_str;
+
+          } else if (target_value.is_array()) {            
             auto result = Value::array();
-            for (auto i = start; i < end; ++i) {
-              result.push_back(target_value.at(i));
+            if (reverse) {
+              for (int64_t i = start; i > end; --i) {
+                if (i >= 0 && i < (int64_t)len) {
+                  result.push_back(target_value.at(i));
+                } else if (i < 0) {
+                  break;
+                }
+              }
+            } else {
+              for (auto i = start; i < end; ++i) {
+                result.push_back(target_value.at(i));
+              }
             }
             return result;
           } else {
@@ -2087,28 +2122,37 @@ private:
 
       while (it != end && consumeSpaces() && peekSymbols({ "[", "." })) {
         if (!consumeToken("[").empty()) {
-            std::shared_ptr<Expression> index;
+          std::shared_ptr<Expression> index;
+          auto slice_loc = get_location();
+          std::shared_ptr<Expression> start, end, step;
+          bool has_first_colon = false, has_second_colon = false;
+
+          if (!peekSymbols({ ":" })) {
+            start = parseExpression();
+          }
+
+          if (!consumeToken(":").empty()) {
+            has_first_colon = true;
+            if (!peekSymbols({ ":", "]" })) {
+              end = parseExpression();
+            }
             if (!consumeToken(":").empty()) {
-              auto slice_end = parseExpression();
-              index = std::make_shared<SliceExpr>(slice_end->location, nullptr, std::move(slice_end));
-            } else {
-              auto slice_start = parseExpression();
-              if (!consumeToken(":").empty()) {
-                consumeSpaces();
-                if (peekSymbols({ "]" })) {
-                  index = std::make_shared<SliceExpr>(slice_start->location, std::move(slice_start), nullptr);
-                } else {
-                  auto slice_end = parseExpression();
-                  index = std::make_shared<SliceExpr>(slice_start->location, std::move(slice_start), std::move(slice_end));
-                }
-              } else {
-                index = std::move(slice_start);
+              has_second_colon = true;
+              if (!peekSymbols({ "]" })) {
+                step = parseExpression();
               }
             }
-            if (!index) throw std::runtime_error("Empty index in subscript");
-            if (consumeToken("]").empty()) throw std::runtime_error("Expected closing bracket in subscript");
+          }
+  
+          if ((has_first_colon || has_second_colon) && (start || end || step)) {
+            index = std::make_shared<SliceExpr>(slice_loc, std::move(start), std::move(end), std::move(step));
+          } else {
+            index = std::move(start);
+          }
+          if (!index) throw std::runtime_error("Empty index in subscript");
+          if (consumeToken("]").empty()) throw std::runtime_error("Expected closing bracket in subscript");
 
-            value = std::make_shared<SubscriptExpr>(value->location, std::move(value), std::move(index));
+          value = std::make_shared<SubscriptExpr>(value->location, std::move(value), std::move(index));
         } else if (!consumeToken(".").empty()) {
             auto identifier = parseIdentifier();
             if (!identifier) throw std::runtime_error("Expected identifier in subscript");
