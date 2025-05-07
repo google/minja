@@ -318,6 +318,7 @@ set(MODEL_IDS
     ValiantLabs/Llama3.1-8B-Enigma
     xwen-team/Xwen-72B-Chat
     xwen-team/Xwen-7B-Chat
+    Qwen/Qwen3-4B
 
     # Broken, TODO:
     # ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
