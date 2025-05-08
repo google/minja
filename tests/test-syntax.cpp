@@ -218,6 +218,18 @@ TEST(SyntaxTest, SimpleCases) {
         "False",
         render(R"({% set foo = true %}{{ not foo is defined }})", {}, {}));
     EXPECT_EQ(
+        "True",
+        render(R"({% set foo = true %}{{ foo is true }})", {}, {}));
+    EXPECT_EQ(
+        "False",
+        render(R"({% set foo = true %}{{ foo is false }})", {}, {}));
+    EXPECT_EQ(
+        "True",
+        render(R"({% set foo = false %}{{ foo is not true }})", {}, {}));
+    EXPECT_EQ(
+        "False",
+        render(R"({% set foo = false %}{{ foo is not false }})", {}, {}));
+    EXPECT_EQ(
         R"({"a": "b"})",
         render(R"({{ {"a": "b"} | tojson }})", {}, {}));
     EXPECT_EQ(
