@@ -1226,7 +1226,7 @@ public:
           }
           bool reverse = step == -1;
 
-          size_t len = target_value.size();
+          size_t len = target_value.size();          
           int64_t start = slice->start ? slice->start->evaluate(context).get<int64_t>() : (reverse ? len - 1 : 0);
           int64_t end = slice->end ? slice->end->evaluate(context).get<int64_t>() : (reverse ? -1 : len);
 
@@ -1237,19 +1237,27 @@ public:
             end = (int64_t)len + end;
           }
 
+          if (!reverse) {
+            start = std::max((int64_t)0, start);
+            start = std::min(start, (int64_t)len);
+            end = std::max((int64_t)0, end);
+            end = std::min(end, (int64_t)len);
+          } else {
+            start = std::max((int64_t)-1, start);
+            start = std::min(start, (int64_t)len - 1);
+            end = std::max((int64_t)-1, end);
+            end = std::min(end, (int64_t)len - 1);
+          }
+
           if (target_value.is_string()) {
             std::string s = target_value.get<std::string>();
 
             std::string result_str;
             if (reverse) {
               for (int64_t i = start; i > end; --i) {
-                if (i >= 0 && i < (int64_t)len) {
-                  result_str += s[i];
-                } else if (i < 0) {
-                  break;
-                }
+                result_str += s[i];
               }
-            } else {
+            } else if (start < end) {
               result_str = s.substr(start, end - start);
             }
             return result_str;
@@ -1258,11 +1266,7 @@ public:
             auto result = Value::array();
             if (reverse) {
               for (int64_t i = start; i > end; --i) {
-                if (i >= 0 && i < (int64_t)len) {
-                  result.push_back(target_value.at(i));
-                } else if (i < 0) {
-                  break;
-                }
+                result.push_back(target_value.at(i));
               }
             } else {
               for (auto i = start; i < end; ++i) {
