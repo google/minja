@@ -9,6 +9,9 @@ It is **not general purpose**: it includes just what’s needed for actual chat 
 > [!WARNING]  
 > TL;DR: use of Minja is *at your own risk*, and the risks are plenty! See [Security & Privacy](#security--privacy) section below.
 
+> [!IMPORTANT]  
+> [@ochafik](https://github.com/ochafik) has left Google, watch out for https://github.com/ochafik/minja
+
 [![CI](https://github.com/google/minja/actions/workflows/build.yml/badge.svg)](https://github.com/google/minja/actions/workflows/build.yml)
 
 ## Design goals:
