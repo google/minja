@@ -1220,58 +1220,36 @@ public:
         if (!index) throw std::runtime_error("SubscriptExpr.index is null");
         auto target_value = base->evaluate(context);
         if (auto slice = dynamic_cast<SliceExpr*>(index.get())) {
+          auto len = target_value.size();
+          auto wrap = [len](int64_t i) -> int64_t {
+            if (i < 0) {
+              return i + len;
+            }
+            return i;
+          };
           int64_t step = slice->step ? slice->step->evaluate(context).get<int64_t>() : 1;
-          if (step != 1 && step != -1) {
-            throw std::runtime_error("Slicing with step other than 1 or -1 is not supported");
+          if (!step) {
+            throw std::runtime_error("slice step cannot be zero");
           }
-          bool reverse = step == -1;
-
-          size_t len = target_value.size();          
-          int64_t start = slice->start ? slice->start->evaluate(context).get<int64_t>() : (reverse ? len - 1 : 0);
-          int64_t end = slice->end ? slice->end->evaluate(context).get<int64_t>() : (reverse ? -1 : len);
-
-          if (slice->start && start < 0) {
-            start = (int64_t)len + start;
-          }
-          if (slice->end && end < 0) {
-            end = (int64_t)len + end;
-          }
-
-          if (!reverse) {
-            start = std::max((int64_t)0, start);
-            start = std::min(start, (int64_t)len);
-            end = std::max((int64_t)0, end);
-            end = std::min(end, (int64_t)len);
-          } else {
-            start = std::max((int64_t)-1, start);
-            start = std::min(start, (int64_t)len - 1);
-            end = std::max((int64_t)-1, end);
-            end = std::min(end, (int64_t)len - 1);
-          }
-
+          int64_t start = slice->start ? wrap(slice->start->evaluate(context).get<int64_t>()) : (step < 0 ? len - 1 : 0);
+          int64_t end = slice->end ? wrap(slice->end->evaluate(context).get<int64_t>()) : (step < 0 ? -1 : len);
           if (target_value.is_string()) {
             std::string s = target_value.get<std::string>();
 
-            std::string result_str;
-            if (reverse) {
-              for (int64_t i = start; i > end; --i) {
-                result_str += s[i];
+            std::string result;
+            if (start < end && step == 1) {
+              result = s.substr(start, end - start);
+            } else {
+              for (int64_t i = start; step > 0 ? i < end : i > end; i += step) {
+                result += s[i];
               }
-            } else if (start < end) {
-              result_str = s.substr(start, end - start);
             }
-            return result_str;
+            return result;
 
           } else if (target_value.is_array()) {            
             auto result = Value::array();
-            if (reverse) {
-              for (int64_t i = start; i > end; --i) {
-                result.push_back(target_value.at(i));
-              }
-            } else {
-              for (auto i = start; i < end; ++i) {
-                result.push_back(target_value.at(i));
-              }
+            for (int64_t i = start; step > 0 ? i < end : i > end; i += step) {
+              result.push_back(target_value.at(i));
             }
             return result;
           } else {
