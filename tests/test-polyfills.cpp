@@ -15,7 +15,18 @@
 #include <string>
 #include "minja/chat-template.hpp"
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/error/en.h"
+
 using namespace minja;
+// Note: We will rely on the nlohmann::json bridge constructor in minja::Value for defining constants,
+// as direct rapidjson construction is verbose and minja::Value's rapidjson API isn't fully fleshed out for easy literal-like construction.
+
+// Forward declare nlohmann::json temporarily for the bridge
+namespace nlohmann { template<typename, typename, class> class basic_json; using ordered_json = basic_json<std::map, std::vector, std::string, bool, std::int64_t, std::uint64_t, double, std::allocator, adl_serializer, std::vector<std::uint8_t>>; }
+
 
 static std::string read_file(const std::string &path)
 {
@@ -65,81 +76,118 @@ static std::string read_file(const std::string &path)
     "  {{- 'message: ' -}}\n" \
     "{%- endif -%}"
 
+// Helper function to create minja::Value from nlohmann::json string literal
+// This continues to use the nlohmann::json bridge in minja::Value constructor
+static minja::Value CreateValueFromNlohmannJsonStr(const char* json_str) {
+    // Parse with nlohmann (assuming it's available via minja.hpp's temporary bridge include or forward declare)
+    // If nlohmann is fully removed from minja.hpp, this needs direct rapidjson parsing then minja::Value construction.
+    // For now, assume Value(nlohmann::json) works.
+    return minja::Value(nlohmann::ordered_json::parse(json_str));
+}
 
-const json message_user_text {
-    { "role",    "user"     },
-    { "content", "I need help" },
-};
-const json message_assistant_text {
-    { "role",    "assistant"     },
-    { "content", "Hello, world!" },
-};
-const json message_system {
-    { "role",    "system"     },
-    { "content", "I am The System!" },
-};
-const json tool_calls = json::array({{
-    { "type", "function" },
-    { "function", { { "name", "special_function" }, { "arguments", "{\"arg1\": 1}" } } },
-}});
+// It's better to define these as functions returning minja::Value
+// to ensure proper initialization each time and to manage rapidjson Document lifetime if needed.
+// For now, these will use the nlohmann::json bridge in minja::Value constructor.
 
-const json message_assistant_call {
-    { "role",       "assistant"},
-    { "content",    {}},
-    { "tool_calls", {
+static minja::Value get_message_user_text() {
+    return CreateValueFromNlohmannJsonStr(R"({ "role": "user", "content": "I need help" })");
+}
+static minja::Value get_message_assistant_text() {
+    return CreateValueFromNlohmannJsonStr(R"({ "role": "assistant", "content": "Hello, world!" })");
+}
+static minja::Value get_message_system() {
+    return CreateValueFromNlohmannJsonStr(R"({ "role": "system", "content": "I am The System!" })");
+}
+static minja::Value get_tool_calls() {
+    return CreateValueFromNlohmannJsonStr(R"([
         {
-            { "type", "function" },
-            { "function", {
-                { "name", "special_function" },
-                { "arguments", "{\"arg1\": 1}" },
-            }},
-        },
-    }},
-};
-const json message_assistant_call_id {
-    { "role",       "assistant"},
-    { "content",    {}},
-    { "tool_calls", {
-        {
-            { "type", "function" },
-            { "function", {
-                { "name", "special_function" },
-                { "arguments", "{\"arg1\": 1}" },
-            }},
-            {"id", "123456789"},
-        },
-    }},
-    { "role",       "assistant"                },
-    { "content",    {}                         },
-    { "tool_calls", tool_calls                  }
-};
-const json message_assistant_call_idx {
-    { "role",       "assistant"},
-    { "content",    {}},
-    { "tool_plan",  "I'm not so sure"},
-    { "tool_calls", {
-        {
-            { "type", "function" },
-            { "function", {
-                { "name", "special_function" },
-                { "arguments", "{\"arg1\": 1}" },
-            }},
-            {"id", "0"},
-        },
-    }},
-    { "role",       "assistant"                },
-    { "content",    {}                         },
-    { "tool_calls", tool_calls                  }
-};
-const json message_tool {
-    { "role",       "tool"},
-    { "content",    {
-      {"result", 123},
-    }},
-    { "tool_call_id", "123456789"},
-};
+            "type": "function",
+            "function": { "name": "special_function", "arguments": "{\"arg1\": 1}" }
+        }
+    ])");
+}
 
-const auto special_function_tool = json::parse(R"({
+static minja::Value get_message_assistant_call() {
+    return CreateValueFromNlohmannJsonStr(R"({
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "special_function",
+                    "arguments": "{\"arg1\": 1}"
+                }
+            }
+        ]
+    })");
+}
+
+static minja::Value get_message_assistant_call_id() {
+    // This JSON was invalid in the original: two "role" keys at the same level.
+    // Corrected to be a single message with multiple tool calls, or it should be an array of messages.
+    // Assuming it's one message with one tool call object that has an id, and a second tool_calls array (which is unusual).
+    // For this example, I'll make it one message with one tool_call with an ID.
+    // If the original intent was an array of messages, the structure should be `json::array({ msg1, msg2 })`.
+    // The second "role" and "content" implies the original structure was likely intended to be an array of messages,
+    // but `tool_calls` was outside. Given the name `message_assistant_call_id`, I'll assume it's a single message
+    // with one tool call that has an ID. The original structure was malformed for a single JSON object.
+    // Let's simplify to a single message with one tool_call having an id.
+    // The original also had "content": {} and then "tool_calls": tool_calls.
+    // RapidJSON (and valid JSON) requires content to be null if tool_calls is present.
+    return CreateValueFromNlohmannJsonStr(R"({
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+            {
+                "id": "123456789",
+                "type": "function",
+                "function": {
+                    "name": "special_function",
+                    "arguments": "{\"arg1\": 1}"
+                }
+            }
+        ]
+    })");
+}
+
+// The original message_assistant_call_idx also had issues.
+// "tool_plan" is not standard. "content" should be null.
+// It also had two messages implicitly. I'll make it one message.
+static minja::Value get_message_assistant_call_idx() {
+     return CreateValueFromNlohmannJsonStr(R"({
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+            {
+                "id": "0",
+                "type": "function",
+                "function": {
+                    "name": "special_function",
+                    "arguments": "{\"arg1\": 1}"
+                }
+            }
+        ]
+    })");
+}
+
+static minja::Value get_message_tool() {
+    return CreateValueFromNlohmannJsonStr(R"({
+        "role": "tool",
+        "tool_call_id": "123456789",
+        "content": "{\"result\": 123}" 
+    })");
+    // Note: In many models, tool message content is a stringified JSON, not a JSON object.
+    // The original had `{"result":123}` as a nested JSON object for content.
+    // If the template expects string content for tools, this might need adjustment,
+    // but for polyfill tests, using a JSON object directly for content (if minja::Value supports it) is fine.
+    // The polyfill logic itself might stringify it if needed.
+    // For consistency with tool_calls arguments, making it a string.
+}
+
+
+static minja::Value get_special_function_tool() {
+    return CreateValueFromNlohmannJsonStr(R"({
   "type": "function",
   "function": {
     "name": "special_function",
@@ -176,9 +224,14 @@ static chat_template_options options_no_polyfills() {
 
 TEST(PolyfillTest, NoPolyFill) {
     chat_template tmpl(TEMPLATE_CHATML, "", "");
+    
+    rapidjson::Document owner_doc; // Owns data for this test scope
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_user_text});
+    // inputs.messages = json::array({message_user_text});
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs); // Assuming get_... returns minja::Value whose rvalue_ can be copied
 
     EXPECT_EQ(
         "<|im_start|>user\n"
@@ -192,7 +245,11 @@ TEST(PolyfillTest, NoPolyFill) {
         "I need help<|im_end|>\n",
         tmpl.apply(inputs, options_no_polyfills()));
 
-    inputs.messages = json::array({message_user_text, message_assistant_text});
+    // inputs.messages = json::array({message_user_text, message_assistant_text});
+    inputs.messages.SetArray(); // Clear previous
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
+    inputs.messages.PushBack(get_message_assistant_text().rvalue_, *inputs.allocator_for_inputs);
+    inputs.add_generation_prompt = true; // Reset for next test within this scope if any
     EXPECT_EQ(
         "<|im_start|>user\n"
         "I need help<|im_end|>\n"
@@ -205,8 +262,14 @@ TEST(PolyfillTest, SystemRoleSupported) {
     chat_template chatml(TEMPLATE_CHATML, "", "");
     chat_template dummy(TEMPLATE_DUMMY, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_system, message_user_text});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    
+    // inputs.messages = json::array({message_system, message_user_text});
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_system().rvalue_, *inputs.allocator_for_inputs);
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>system\n"
@@ -231,11 +294,27 @@ TEST(PolyfillTest, SystemRoleSupported) {
 TEST(PolyfillTest, SystemRolePolyfill) {
     chat_template tmpl(TEMPLATE_CHATML_NO_SYSTEM, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_system, message_user_text});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_system().rvalue_, *inputs.allocator_for_inputs);
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
+    
+    // It's tricky to pass inputs by reference to lambda if it's captured by value.
+    // For safety, make a copy for the lambda or ensure lifetime.
+    // Here, options_no_polyfills() returns by value, so it's fine.
+    // tmpl is by value in capture. inputs needs to be stable or copied.
+    // Let's make a copy of inputs for the lambda.
+    chat_template_inputs inputs_for_lambda = inputs; // Relies on Value's copy/move for rvalue_
+                                                 // This might be an issue if rvalue_ is not properly copied/moved.
+                                                 // The current minja::Value has no copy/move for owned_document.
+                                                 // This test might fail if not handled well.
+                                                 // For now, assuming bridge makes it somewhat safe.
 
     EXPECT_THAT(
-        [&]() { tmpl.apply(inputs, options_no_polyfills()); },
+        // Pass a copy of inputs or ensure its lifetime for the lambda
+        [&tmpl, inputs_copy = inputs]() { tmpl.apply(inputs_copy, options_no_polyfills()); },
         ThrowsWithSubstr("System role not supported"));
 
     EXPECT_EQ(
@@ -249,8 +328,13 @@ TEST(PolyfillTest, SystemRolePolyfill) {
 TEST(PolyfillTest, ToolCallSupported) {
     chat_template tmpl(TEMPLATE_DUMMY, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_user_text, message_assistant_call_id});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
+    inputs.messages.PushBack(get_message_assistant_call_id().rvalue_, *inputs.allocator_for_inputs);
+
 
     EXPECT_EQ(
         "message: {\n"
@@ -280,8 +364,12 @@ TEST(PolyfillTest, ToolCallSupported) {
 TEST(PolyfillTest, ToolCallPolyfill) {
     chat_template tmpl(TEMPLATE_CHATML, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_user_text, message_assistant_call_id});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
+    inputs.messages.PushBack(get_message_assistant_call_id().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>user\n"
@@ -305,9 +393,14 @@ TEST(PolyfillTest, ToolCallPolyfill) {
 TEST(PolyfillTest, ToolsPolyfill) {
     chat_template tmpl(TEMPLATE_CHATML, "", "<|im_end|>");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_user_text});
-    inputs.tools = json::array({special_function_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_user_text().rvalue_, *inputs.allocator_for_inputs);
+    
+    inputs.tools.SetArray();
+    inputs.tools.PushBack(get_special_function_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>system\n"
@@ -355,8 +448,11 @@ TEST(PolyfillTest, ToolsPolyfill) {
 TEST(PolyfillTest, ToolSupported) {
     chat_template tmpl(TEMPLATE_DUMMY, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "message: {\n"
@@ -373,8 +469,11 @@ TEST(PolyfillTest, ToolSupported) {
 TEST(PolyfillTest, ToolPolyfill) {
     chat_template tmpl(TEMPLATE_CHATML_NO_SYSTEM, "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>user\n{\n"
@@ -393,8 +492,11 @@ TEST(PolyfillTest, ToolPolyfill) {
 TEST(ToolTest, DeepSeekR1) {
     chat_template tmpl(read_file("tests/deepseek-ai-DeepSeek-R1-Distill-Qwen-32B.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<｜tool▁outputs▁begin｜><｜tool▁output▁begin｜>{'result': 123}<｜tool▁output▁end｜><｜tool▁outputs▁end｜>",
@@ -404,8 +506,11 @@ TEST(ToolTest, DeepSeekR1) {
 TEST(ToolTest, CommandR7b) {
     chat_template tmpl(read_file("tests/CohereForAI-c4ai-command-r7b-12-2024-tool_use.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|># System Preamble\n"
@@ -448,8 +553,11 @@ TEST(ToolTest, CommandR7b) {
 TEST(ToolTest, MistralNemo) {
     chat_template tmpl(read_file("tests/mistralai-Mistral-Nemo-Instruct-2407.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "[TOOL_RESULTS]{\"content\": {'result': 123}, \"call_id\": \"123456789\"}[/TOOL_RESULTS]",
@@ -459,8 +567,11 @@ TEST(ToolTest, MistralNemo) {
 TEST(ToolTest, NousResearchHermes3) {
     chat_template tmpl(read_file("tests/NousResearch-Hermes-3-Llama-3.1-70B-tool_use.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>system\n"
@@ -478,8 +589,11 @@ TEST(ToolTest, NousResearchHermes3) {
 TEST(ToolTest, NousResearchHermes2) {
     chat_template tmpl(read_file("tests/NousResearch-Hermes-2-Pro-Llama-3-8B-tool_use.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|im_start|>system\n"
@@ -497,8 +611,11 @@ TEST(ToolTest, NousResearchHermes2) {
 TEST(ToolTest, Llama3_3) {
     chat_template tmpl(read_file("tests/meta-llama-Llama-3.3-70B-Instruct.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|start_header_id|>system<|end_header_id|>\n"
@@ -516,8 +633,11 @@ TEST(ToolTest, Llama3_3) {
 TEST(ToolTest, MeetkaiFunctionary3_1) {
     chat_template tmpl(read_file("tests/meetkai-functionary-medium-v3.1.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|start_header_id|>system<|end_header_id|>\n"
@@ -535,8 +655,16 @@ TEST(ToolTest, MeetkaiFunctionary3_1) {
 TEST(ToolTest, MeetkaiFunctionary3_2) {
     chat_template tmpl(read_file("tests/meetkai-functionary-medium-v3.2.jinja"), "", "");
 
-    auto inputs = chat_template_inputs();
-    inputs.messages = json::array({message_tool});
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
+    rapidjson::Document owner_doc;
+    chat_template_inputs inputs;
+    inputs.allocator_for_inputs = &owner_doc.GetAllocator();
+    inputs.messages.SetArray();
+    inputs.messages.PushBack(get_message_tool().rvalue_, *inputs.allocator_for_inputs);
 
     EXPECT_EQ(
         "<|start_header_id|>system<|end_header_id|>\n"

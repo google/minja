@@ -54,10 +54,13 @@ endif()
 
 include(FetchContent)
 
-# Fetch nlohmann/json
-FetchContent_Declare(json URL https://github.com/nlohmann/json/archive/refs/heads/develop.zip)
-FetchContent_MakeAvailable(json)
-target_link_libraries(minja INTERFACE nlohmann_json::nlohmann_json)
+# Fetch rapidjson
+FetchContent_Declare(RapidJSON_repo
+    GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+    GIT_TAG master # Or a specific release tag
+)
+FetchContent_MakeAvailable(RapidJSON_repo)
+target_include_directories(minja INTERFACE ${rapidjson_SOURCE_DIR}/include)
 
 if(MINJA_TEST_ENABLED)
     if (MINJA_FUZZTEST_ENABLED)
@@ -110,7 +113,11 @@ endif()
 
 find_program(CPPCHECK cppcheck)
 if(CPPCHECK)
-  set(CMAKE_CXX_CPPCHECK "${CPPCHECK}" -i ${json_SOURCE_DIR}/include/nlohmann/json.hpp)
+  # Update the cppcheck exclusion if rapidjson headers cause issues.
+  # For now, let's remove the exclusion for nlohmann/json.
+  # If rapidjson needs an exclusion, it can be added here.
+  # Example: set(CMAKE_CXX_CPPCHECK "${CPPCHECK}" -i ${rapidjson_SOURCE_DIR}/include/rapidjson/...)
+  set(CMAKE_CXX_CPPCHECK "${CPPCHECK}")
   message(STATUS "cppcheck found: ${CPPCHECK}")
 endif()
 

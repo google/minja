@@ -14,20 +14,57 @@
 #include <iostream>
 #include <string>
 
-static std::string render_python(const std::string & template_str, const json & bindings, const minja::Options & options) {
-    json data {
-        {"template", template_str},
-        {"bindings", bindings.is_null() ? json::object() : bindings},
-        {"options", {
-            {"trim_blocks", options.trim_blocks},
-            {"lstrip_blocks", options.lstrip_blocks},
-            {"keep_trailing_newline", options.keep_trailing_newline},
-        }},
-    };
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/error/en.h"
+#include "rapidjson/ostreamwrapper.h" // For std::ofstream
+
+// Forward declare nlohmann::json for the bridge constructor in minja::Value and for test data.
+namespace nlohmann { template<typename, typename, class> class basic_json; using ordered_json = basic_json<std::map, std::vector, std::string, bool, std::int64_t, std::uint64_t, double, std::allocator, adl_serializer, std::vector<std::uint8_t>>; }
+using json = nlohmann::ordered_json; // Temporary alias for nlohmann::json for test data literals
+
+using Document = rapidjson::Document;
+using RValue = rapidjson::Value;
+
+static std::string render_python(const std::string & template_str, const minja::Value & bindings_minja_val, const minja::Options & options) {
+    Document d; // Document to own all allocations for 'data'
+    Document::AllocatorType& allocator = d.GetAllocator();
+
+    RValue data(rapidjson::kObjectType);
+    data.AddMember("template", RValue(template_str.c_str(), allocator).Move(), allocator);
+
+    if (bindings_minja_val.is_null()) {
+        data.AddMember("bindings", RValue(rapidjson::kObjectType).Move(), allocator);
+    } else {
+        // Convert minja::Value to rapidjson::Value for serialization.
+        // This assumes minja::Value::dump(to_json=true) produces a string that can be parsed by rapidjson,
+        // or ideally, minja::Value has a way to expose its internal RValue or convert to one.
+        // Using the nlohmann bridge temporarily to get a serializable form:
+        std::string bindings_str = bindings_minja_val.dump(-1, true); // Dump as JSON string
+        Document bindings_doc_temp;
+        if (bindings_doc_temp.Parse(bindings_str.c_str()).HasParseError()) {
+             // Or handle error appropriately
+            data.AddMember("bindings", RValue(rapidjson::kObjectType).Move(), allocator);
+        } else {
+            RValue bindings_rval_copy;
+            bindings_rval_copy.CopyFrom(bindings_doc_temp, allocator);
+            data.AddMember("bindings", bindings_rval_copy, allocator);
+        }
+    }
+    
+    RValue options_rval(rapidjson::kObjectType);
+    options_rval.AddMember("trim_blocks", options.trim_blocks, allocator);
+    options_rval.AddMember("lstrip_blocks", options.lstrip_blocks, allocator);
+    options_rval.AddMember("keep_trailing_newline", options.keep_trailing_newline, allocator);
+    data.AddMember("options", options_rval, allocator);
+    
     {
-        std::ofstream of("data.json");
-        of << data.dump(2);
-        of.close();
+        std::ofstream ofs("data.json");
+        rapidjson::OStreamWrapper osw(ofs);
+        rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
+        writer.SetIndent(' ', 2);
+        data.Accept(writer);
     }
 
     auto pyExeEnv = getenv("PYTHON_EXECUTABLE");
@@ -36,7 +73,10 @@ static std::string render_python(const std::string & template_str, const json & 
     std::remove("out.txt");
     auto res = std::system((pyExe + " -m scripts.render data.json out.txt").c_str());
     if (res != 0) {
-        throw std::runtime_error("Failed to run python script with data: " + data.dump(2));
+        rapidjson::StringBuffer err_buffer;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> err_writer(err_buffer);
+        data.Accept(err_writer);
+        throw std::runtime_error("Failed to run python script with data: " + std::string(err_buffer.GetString()));
     }
 
     std::ifstream f("out.txt");
@@ -44,12 +84,16 @@ static std::string render_python(const std::string & template_str, const json & 
     return out;
 }
 
-static std::string render(const std::string & template_str, const json & bindings, const minja::Options & options) {
+// 'bindings' parameter changed from nlohmann::json to minja::Value
+static std::string render(const std::string & template_str, const minja::Value & bindings, const minja::Options & options) {
     if (getenv("USE_JINJA2")) {
         return render_python(template_str, bindings, options);
     }
     auto root = minja::Parser::parse(template_str, options);
-    auto context = minja::Context::make(bindings);
+    // Context::make expects a minja::Value.
+    // If bindings is already a minja::Value, we might need to ensure it's correctly owned or copied.
+    // The make function in the overwritten minja.hpp implies it takes Value&&, so std::move or copy.
+    auto context = minja::Context::make(minja::Value(bindings)); // Pass a copy or ensure move works
     return root->render(context);
 }
 

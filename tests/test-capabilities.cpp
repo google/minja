@@ -21,7 +21,7 @@
 #undef NDEBUG
 #include <cassert>
 
-using json = nlohmann::ordered_json;
+// using json = nlohmann::ordered_json; // No longer needed
 
 static std::string read_file(const std::string &path)
 {
