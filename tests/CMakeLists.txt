@@ -148,6 +148,7 @@ set(MODEL_IDS
     HuggingFaceTB/SmolLM2-1.7B-Instruct
     HuggingFaceTB/SmolLM2-135M-Instruct
     HuggingFaceTB/SmolLM2-360M-Instruct
+    HuggingFaceTB/SmolLM3-3B
     huihui-ai/DeepSeek-R1-Distill-Llama-70B-abliterated
     huihui-ai/DeepSeek-R1-Distill-Llama-8B-abliterated
     huihui-ai/DeepSeek-R1-Distill-Qwen-14B-abliterated-v2

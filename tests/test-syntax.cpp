@@ -84,6 +84,10 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ(
         "Ok",
         render("{{ 'ok'.capitalize() }}", {}, {}));
+    EXPECT_EQ("obcXYZobcXYZobc",
+        render("{{ 'abcXYZabcXYZabc'.replace('a', 'o') }}", {}, {}));
+    EXPECT_EQ("okcXYZokcXYZabc",
+        render("{{ 'abcXYZabcXYZabc'.replace('ab', 'ok', 2) }}", {}, {}));
 
     EXPECT_EQ(
         "ok",
@@ -199,6 +203,10 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ(
         "True,False",
         render(R"({{ 'a' in ["a"] }},{{ 'a' in [] }})", {}, {}));
+    EXPECT_EQ("True,False",
+        render(R"({{ 'a' in 'abc' }},{{ 'd' in 'abc' }})", {}, {}));
+    EXPECT_EQ("False,True",
+        render(R"({{ 'a' not in 'abc' }},{{ 'd' not in 'abc' }})", {}, {}));
     EXPECT_EQ(
         R"([{'a': 1}])",
         render(R"({{ [{"a": 1}, {"a": 2}, {}] | selectattr("a", "equalto", 1) | list }})", {}, {}));
@@ -481,8 +489,8 @@ TEST(SyntaxTest, SimpleCases) {
         "[1, 2, 3][0, 1][1, 2]",
         render("{% set x = [0, 1, 2, 3] %}{{ x[1:] }}{{ x[:2] }}{{ x[1:3] }}", {}, {}));
     EXPECT_EQ(
-        "123;01;12",
-        render("{% set x = '0123' %}{{ x[1:] }};{{ x[:2] }};{{ x[1:3] }}", {}, {}));
+        "123;01;12;0123;0123",
+        render("{% set x = '0123' %}{{ x[1:] }};{{ x[:2] }};{{ x[1:3] }};{{ x[:] }};{{ x[::] }}", {}, {}));
     EXPECT_EQ(
         "[3, 2, 1, 0][3, 2, 1][2, 1, 0][2, 1][0, 2][3, 1][2, 0]",
         render("{% set x = [0, 1, 2, 3] %}{{ x[::-1] }}{{ x[:0:-1] }}{{ x[2::-1] }}{{ x[2:0:-1] }}{{ x[::2] }}{{ x[::-2] }}{{ x[-2::-2] }}", {}, {}));

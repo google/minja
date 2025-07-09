@@ -427,7 +427,15 @@ async def process_model(output_folder: str, model_id: str, contexts: list[Contex
         except json.JSONDecodeError:
             config = json.loads(re.sub(r'\}([\n\s]*\}[\n\s]*\],[\n\s]*"clean_up_tokenization_spaces")', r'\1', config_str))
 
-        assert 'chat_template' in config, 'No "chat_template" entry in tokenizer_config.json!'
+        if 'chat_template' not in config:
+            try:
+                chat_template = await async_hf_download(model_id, "chat_template.jinja")
+                config.update({'chat_template': chat_template})
+            except Exception as e:
+                logger.error(f"Failed to fetch chat_template.jinja for model {model_id}: {e}")
+                raise e
+
+        assert 'chat_template' in config, 'No "chat_template" entry in tokenizer_config.json or no chat_template.jinja file found!'
         chat_template = config['chat_template']
         if isinstance(chat_template, str):
             await handle_chat_template(output_folder, model_id, None, chat_template, contexts)
