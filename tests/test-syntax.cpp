@@ -84,10 +84,12 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ(
         "Ok",
         render("{{ 'ok'.capitalize() }}", {}, {}));
-    EXPECT_EQ("obcXYZobcXYZobc",
-        render("{{ 'abcXYZabcXYZabc'.replace('a', 'o') }}", {}, {}));
-    EXPECT_EQ("okcXYZokcXYZabc",
-        render("{{ 'abcXYZabcXYZabc'.replace('ab', 'ok', 2) }}", {}, {}));
+    EXPECT_EQ("aouiXYZaouiXYZaoui",
+        render("{{ 'abcXYZabcXYZabc'.replace('bc', 'oui') }}", {}, {}));
+    EXPECT_EQ("okXYZokXYZabc",
+        render("{{ 'abcXYZabcXYZabc'.replace('abc', 'ok', 2) }}", {}, {}));
+    EXPECT_EQ("abcXYZabcXYZabc",
+        render("{{ 'abcXYZabcXYZabc'.replace('def', 'ok') }}", {}, {}));
 
     EXPECT_EQ(
         "ok",
