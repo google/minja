@@ -166,10 +166,14 @@ class chat_template:
         }])
         caps.supports_tools = "some_tool" in out
 
+        caps.requires_non_null_content = \
+            (user_needle in self.try_raw_render([dummy_user_msg, {"role": "assistant", "content": ''}])) \
+            and (user_needle not in self.try_raw_render([dummy_user_msg, {"role": "assistant", "content": None}]))
+
         def make_tool_calls_msg(tool_calls, content=None):
             return {
                 "role": "assistant",
-                "content": content,
+                "content": "" if content is None and caps.requires_non_null_content else content,
                 "tool_calls": tool_calls,
             }
         def make_tool_call(tool_name, arguments):
@@ -197,10 +201,6 @@ class chat_template:
 
         caps.supports_tool_calls = tool_call_renders_str_arguments or tool_call_renders_obj_arguments
         caps.requires_object_arguments = not tool_call_renders_str_arguments and tool_call_renders_obj_arguments
-
-        caps.requires_non_null_content = \
-            (user_needle in self.try_raw_render([dummy_user_msg, {"role": "assistant", "content": ''}])) \
-            and (user_needle not in self.try_raw_render([dummy_user_msg, {"role": "assistant", "content": None}]))
 
         if caps.supports_tool_calls:
             dummy_args = dummy_args_obj if caps.requires_object_arguments else json.dumps(dummy_args_obj)
@@ -232,7 +232,7 @@ class chat_template:
                 args = {"arg1": "some_value"}
                 tool_call_msg = {
                     "role": "assistant",
-                    "content": None,
+                    "content": "" if caps.requires_non_null_content else None,
                     "tool_calls": [
                         {
                             "id": "call_1___",
