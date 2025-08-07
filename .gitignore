@@ -4,3 +4,4 @@ dist/
 Testing/
 .vscode/
 __pycache__/
+clangd/
