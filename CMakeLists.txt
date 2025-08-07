@@ -55,20 +55,20 @@ endif()
 include(FetchContent)
 
 # Fetch nlohmann/json
-FetchContent_Declare(json URL https://github.com/nlohmann/json/archive/refs/heads/develop.zip)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.zip)
 FetchContent_MakeAvailable(json)
 target_link_libraries(minja INTERFACE nlohmann_json::nlohmann_json)
 
 if(MINJA_TEST_ENABLED)
     if (MINJA_FUZZTEST_ENABLED)
         # Fetch google/fuzztest (and indirectly, gtest)
-        FetchContent_Declare(fuzztest URL https://github.com/google/fuzztest/archive/refs/heads/main.zip)
+        FetchContent_Declare(fuzztest URL https://github.com/google/fuzztest/archive/refs/tags/2025-08-05.zip)
         FetchContent_MakeAvailable(fuzztest)
         message(STATUS "${fuzztest_BINARY_DIR}: ${${fuzztest_BINARY_DIR}}")
     else()
         # Fetch gtest
         set(INSTALL_GTEST OFF)
-        FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/heads/main.zip)
+        FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip)
         FetchContent_MakeAvailable(googletest)
     endif()
 endif()
