@@ -217,6 +217,10 @@ TEST(SyntaxTest, SimpleCases) {
         render(R"({{ 'a' in 'abc' }},{{ 'd' in 'abc' }})", {}, {}));
     EXPECT_EQ("False,True",
         render(R"({{ 'a' not in 'abc' }},{{ 'd' not in 'abc' }})", {}, {}));
+    EXPECT_EQ("['a', 'a']",
+        render(R"({{ ['a', 'b', 'c', 'a'] | select('in', ['a']) | list }})", {}, {}));
+    EXPECT_EQ("['a', 'b'],[]",
+        render(R"({{ {'a': 1, 'b': 2}.keys() | list }},{{ {}.keys() | list }})", {}, {}));
     EXPECT_EQ(
         R"([{'a': 1}])",
         render(R"({{ [{"a": 1}, {"a": 2}, {}] | selectattr("a", "equalto", 1) | list }})", {}, {}));

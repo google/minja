@@ -1291,6 +1291,12 @@ public:
     }
 };
 
+static bool in(const Value & value, const Value & container) {
+  return (((container.is_array() || container.is_object()) && container.contains(value)) ||
+      (value.is_string() && container.is_string() &&
+        container.to_str().find(value.to_str()) != std::string::npos));
+};                                    
+
 class BinaryOpExpr : public Expression {
 public:
     enum class Op { StrConcat, Add, Sub, Mul, MulMul, Div, DivDiv, Mod, Eq, Ne, Lt, Gt, Le, Ge, And, Or, In, NotIn, Is, IsNot };
@@ -1355,13 +1361,8 @@ public:
               case Op::Gt:        return l > r;
               case Op::Le:        return l <= r;
               case Op::Ge:        return l >= r;
-              case Op::In:        return (((r.is_array() || r.is_object()) && r.contains(l)) ||
-                                          (l.is_string() && r.is_string() &&
-                                            r.to_str().find(l.to_str()) != std::string::npos));
-              case Op::NotIn:
-                                  return !(((r.is_array() || r.is_object()) && r.contains(l)) ||
-                                            (l.is_string() && r.is_string() &&
-                                              r.to_str().find(l.to_str()) != std::string::npos));
+              case Op::In:        return in(l, r);
+              case Op::NotIn:     return !in(l, r);
               default:            break;
           }
           throw std::runtime_error("Unknown binary operator");
@@ -1500,6 +1501,13 @@ public:
           } else if (method->get_name() == "pop") {
             vargs.expectArgs("pop method", {1, 1}, {0, 0});
             return obj.pop(vargs.args[0]);
+          } else if (method->get_name() == "keys") {
+            vargs.expectArgs("keys method", {0, 0}, {0, 0});
+            auto result = Value::array();
+            for (const auto& key : obj.keys()) {
+              result.push_back(Value(key));
+            }
+            return result;
           } else if (method->get_name() == "get") {
             vargs.expectArgs("get method", {1, 2}, {0, 0});
             auto key = vargs.args[0];
@@ -2791,6 +2799,9 @@ inline std::shared_ptr<Context> Context::builtins() {
       auto & items = args.at("items");
       if (!items.is_array()) throw std::runtime_error("object is not iterable");
       return items;
+  }));
+  globals.set("in", simple_function("in", { "item", "items" }, [](const std::shared_ptr<Context> &, Value & args) -> Value {
+      return in(args.at("item"), args.at("items"));
   }));
   globals.set("unique", simple_function("unique", { "items" }, [](const std::shared_ptr<Context> &, Value & args) -> Value {
       auto & items = args.at("items");

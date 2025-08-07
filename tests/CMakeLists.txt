@@ -320,6 +320,9 @@ set(MODEL_IDS
     xwen-team/Xwen-72B-Chat
     xwen-team/Xwen-7B-Chat
     Qwen/Qwen3-4B
+    Qwen/Qwen3-235B-A22B-Instruct-2507
+    Qwen/Qwen3-235B-A22B-Thinking-2507
+    Qwen/Qwen3-Coder-30B-A3B-Instruct
 
     # Broken, TODO:
     # Qwen/QwQ-32B
