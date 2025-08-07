@@ -75,6 +75,18 @@ TEST(CapabilitiesTest, Gemma7b) {
     EXPECT_FALSE(caps.requires_typed_content);
 }
 
+TEST(CapabilitiesTest, QwQ32B) {
+    auto caps = get_caps("tests/Qwen-QwQ-32B.jinja");
+    EXPECT_TRUE(caps.supports_system_role);
+    EXPECT_TRUE(caps.supports_tools);
+    EXPECT_TRUE(caps.supports_tool_calls);
+    EXPECT_FALSE(caps.supports_tool_responses);
+    EXPECT_TRUE(caps.supports_parallel_tool_calls);
+    EXPECT_TRUE(caps.requires_object_arguments);
+    // EXPECT_TRUE(caps.requires_non_null_content);
+    EXPECT_FALSE(caps.requires_typed_content);
+}
+
 #ifndef _WIN32
 TEST(CapabilitiesTest, DeepSeekR1Distill)
 {
@@ -141,7 +153,7 @@ TEST(CapabilitiesTest, MetaLlama3_3_70BInstruct) {
 TEST(CapabilitiesTest, MiniMaxAIText01) {
     auto caps = get_caps("tests/MiniMaxAI-MiniMax-Text-01.jinja");
     EXPECT_TRUE(caps.supports_system_role);
-    EXPECT_FALSE(caps.supports_tools);
+    EXPECT_TRUE(caps.supports_tools);
     EXPECT_FALSE(caps.supports_tool_calls);
     EXPECT_FALSE(caps.supports_tool_responses);
     EXPECT_FALSE(caps.supports_parallel_tool_calls);

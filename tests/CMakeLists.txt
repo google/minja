@@ -284,7 +284,6 @@ set(MODEL_IDS
     Qwen/Qwen2.5-VL-3B-Instruct
     Qwen/Qwen2.5-VL-72B-Instruct
     Qwen/Qwen2.5-VL-7B-Instruct
-    Qwen/QwQ-32B
     Qwen/QwQ-32B-Preview
     rubenroy/Zurich-14B-GCv2-5m
     rubenroy/Zurich-7B-GCv2-5m
@@ -322,6 +321,7 @@ set(MODEL_IDS
     Qwen/Qwen3-4B
 
     # Broken, TODO:
+    # Qwen/QwQ-32B
     # ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
     # Almawave/Velvet-14B
     # deepseek-ai/DeepSeek-R1
