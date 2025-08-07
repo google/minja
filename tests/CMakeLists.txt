@@ -168,6 +168,7 @@ set(MODEL_IDS
     knifeayumu/Cydonia-v1.3-Magnum-v4-22B
     langgptai/qwen1.5-7b-chat-sa-v0.1
     LatitudeGames/Wayfarer-12B
+    llava-hf/llava-1.5-7b-hf
     LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct
     LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct
     lightblue/DeepSeek-R1-Distill-Qwen-7B-Japanese
