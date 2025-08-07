@@ -80,7 +80,7 @@ TEST(CapabilitiesTest, QwQ32B) {
     EXPECT_TRUE(caps.supports_system_role);
     EXPECT_TRUE(caps.supports_tools);
     EXPECT_TRUE(caps.supports_tool_calls);
-    EXPECT_FALSE(caps.supports_tool_responses);
+    EXPECT_TRUE(caps.supports_tool_responses);
     EXPECT_TRUE(caps.supports_parallel_tool_calls);
     EXPECT_TRUE(caps.requires_object_arguments);
     // EXPECT_TRUE(caps.requires_non_null_content);

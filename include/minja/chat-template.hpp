@@ -162,8 +162,15 @@ class chat_template {
         }), false);
         caps_.supports_tools = contains(out, "some_tool");
 
-        auto out_empty = try_raw_render(json::array({dummy_user_msg, {{"role", "assistant"}, {"content", ""}}}), {}, false);
-        auto out_null = try_raw_render(json::array({dummy_user_msg, {{"role", "assistant"}, {"content", nullptr}}}), {}, false);
+        const auto render_with_content = [&](const json & content) {
+            const json assistant_msg {{"role", "assistant"}, {"content", content}};
+            // Render two assistant messages as some templates like QwQ-32B are handling
+            // the content differently depending on whether it's the last message or not
+            // (to remove the <think> tag in all but the last message).
+            return try_raw_render(json::array({dummy_user_msg, assistant_msg, dummy_user_msg, assistant_msg}), {}, false);
+        };
+        auto out_empty = render_with_content("");
+        auto out_null = render_with_content(json());
         caps_.requires_non_null_content = contains(out_empty, user_needle) && !contains(out_null, user_needle);
         
         json j_null;

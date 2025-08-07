@@ -320,9 +320,9 @@ set(MODEL_IDS
     xwen-team/Xwen-72B-Chat
     xwen-team/Xwen-7B-Chat
     Qwen/Qwen3-4B
+    Qwen/QwQ-32B
 
     # Broken, TODO:
-    # Qwen/QwQ-32B
     # ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
     # Almawave/Velvet-14B
     # deepseek-ai/DeepSeek-R1
