@@ -192,12 +192,12 @@ class chat_template:
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", json.dumps(dummy_args_obj))]),
         ])
-        tool_call_renders_str_arguments = '"argument_needle":' in out or "'argument_needle':" in out
+        tool_call_renders_str_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
         out = self.try_raw_render([
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", dummy_args_obj)]),
         ])
-        tool_call_renders_obj_arguments = '"argument_needle":' in out or "'argument_needle':" in out
+        tool_call_renders_obj_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
 
         caps.supports_tool_calls = tool_call_renders_str_arguments or tool_call_renders_obj_arguments
         caps.requires_object_arguments = not tool_call_renders_str_arguments and tool_call_renders_obj_arguments
