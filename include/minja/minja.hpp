@@ -2664,15 +2664,11 @@ inline std::shared_ptr<Context> Context::builtins() {
     auto items = Value::array();
     if (args.contains("object")) {
       auto & obj = args.at("object");
-      if (obj.is_string()) {
-        auto json_obj = json::parse(obj.get<std::string>());
-        for (const auto & kv : json_obj.items()) {
-          items.push_back(Value::array({kv.key(), kv.value()}));
-        }
-      } else if (!obj.is_null()) {
-        for (auto & key : obj.keys()) {
-          items.push_back(Value::array({key, obj.at(key)}));
-        }
+      if (!obj.is_object()) {
+        throw std::runtime_error("Can only get item pairs from a mapping");
+      }
+      for (auto & key : obj.keys()) {
+        items.push_back(Value::array({key, obj.at(key)}));
       }
     }
     return items;

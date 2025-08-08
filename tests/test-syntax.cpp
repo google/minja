@@ -431,9 +431,6 @@ TEST(SyntaxTest, SimpleCases) {
 
     if (!getenv("USE_JINJA2")) {
         EXPECT_EQ(
-            "[]",
-            render(R"({{ None | items | list | tojson }})", {}, {}));
-        EXPECT_EQ(
             "Foo",
             render(R"({% generation %}Foo{% endgeneration %})", {}, {}));
     }
@@ -560,6 +557,10 @@ TEST(SyntaxTest, SimpleCases) {
 
     if (!getenv("USE_JINJA2")) {
         // TODO: capture stderr from jinja2 and test these.
+
+        EXPECT_THAT([]() { render("{{ '' | items }}", {}, {}); }, ThrowsWithSubstr("Can only get item pairs from a mapping"));
+        EXPECT_THAT([]() { render("{{ [] | items }}", {}, {}); }, ThrowsWithSubstr("Can only get item pairs from a mapping"));
+        EXPECT_THAT([]() { render("{{ None | items }}", {}, {}); }, ThrowsWithSubstr("Can only get item pairs from a mapping"));
 
         EXPECT_THAT([]() { render("{% break %}", {}, {}); }, ThrowsWithSubstr("break outside of a loop"));
         EXPECT_THAT([]() { render("{% continue %}", {}, {}); }, ThrowsWithSubstr("continue outside of a loop"));
