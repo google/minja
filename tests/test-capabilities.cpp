@@ -87,6 +87,18 @@ TEST(CapabilitiesTest, QwQ32B) {
     EXPECT_FALSE(caps.requires_typed_content);
 }
 
+TEST(CapabilitiesTest, Qwen3Coder) {
+    auto caps = get_caps("tests/Qwen-Qwen3-Coder-30B-A3B-Instruct.jinja");
+    EXPECT_TRUE(caps.supports_system_role);
+    EXPECT_TRUE(caps.supports_tools);
+    EXPECT_TRUE(caps.supports_tool_calls);
+    EXPECT_TRUE(caps.supports_tool_responses);
+    EXPECT_TRUE(caps.supports_parallel_tool_calls);
+    EXPECT_TRUE(caps.requires_object_arguments);
+    // EXPECT_TRUE(caps.requires_non_null_content);
+    EXPECT_FALSE(caps.requires_typed_content);
+}
+
 #ifndef _WIN32
 TEST(CapabilitiesTest, DeepSeekR1Distill)
 {
