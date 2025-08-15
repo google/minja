@@ -104,10 +104,11 @@ Minja supports the following subset of the [Jinja2/3 template syntax](https://ji
 - Full expression syntax
 - Statements `{{% … %}}`, variable sections `{{ … }}`, and comments `{# … #}` with pre/post space elision `{%- … -%}` / `{{- … -}}` / `{#- … -#}`
 - `if` / `elif` / `else` / `endif`
-- `for` (`recursive`) (`if`) / `else` / `endfor` w/ `loop.*` (including `loop.cycle`) and destructuring
+- `for` (`recursive`) (`if`) / `else` / `endfor` w/ `loop.*` (including `loop.cycle`) and destructuring)
 - `break`, `continue` (aka [loop controls extensions](https://github.com/google/minja/pull/39))
 - `set` w/ namespaces & destructuring
 - `macro` / `endmacro`
+- `call` / `endcall` - for calling macro (w/ macro arguments and `caller()` syntax) and passing a macro to another macro (w/o passing arguments back to the call block)
 - `filter` / `endfilter`
 - Extensible filters collection: `count`, `dictsort`, `equalto`, `e` / `escape`, `items`, `join`, `joiner`, `namespace`, `raise_exception`, `range`, `reject` / `rejectattr` / `select` / `selectattr`, `tojson`, `trim`
 
