@@ -429,6 +429,54 @@ TEST(SyntaxTest, SimpleCases) {
             {%- endmacro -%}
             {{- foo() }} {{ foo() -}})", {}, {}));
 
+    EXPECT_EQ(
+        "x,x",
+        render(R"(
+            {%- macro test() -%}{{ caller() }},{{ caller() }}{%- endmacro -%}
+            {%- call test() -%}x{%- endcall -%}
+        )", {}, {}));
+
+    EXPECT_EQ(
+        "Outer[Inner(X)]",
+        render(R"(
+            {%- macro outer() -%}Outer[{{ caller() }}]{%- endmacro -%}
+            {%- macro inner() -%}Inner({{ caller() }}){%- endmacro -%}
+            {%- call outer() -%}{%- call inner() -%}X{%- endcall -%}{%- endcall -%}
+        )", {}, {}));
+
+    EXPECT_EQ(
+        "<ul><li>A</li><li>B</li></ul>",
+        render(R"(
+            {%- macro test(prefix, suffix) -%}{{ prefix }}{{ caller() }}{{ suffix }}{%- endmacro -%}
+            {%- set items = ["a", "b"] -%}
+            {%- call test("<ul>", "</ul>") -%}
+                {%- for item in items -%}
+                    <li>{{ item | upper }}</li>
+                {%- endfor -%}
+            {%- endcall -%}
+        )", {}, {}));
+    
+    EXPECT_EQ(
+        "\\n\\nclass A:\\n  b: 1\\n  c: 2\\n",
+        render(R"(
+            {%- macro recursive(obj) -%}
+            {%- set ns = namespace(content = caller()) -%}
+            {%- for key, value in obj.items() %}
+                {%- if value is mapping %}
+                    {%- call recursive(value) -%}
+                        {{ '\\n\\nclass ' + key.title() + ':\\n' }}
+                    {%- endcall -%}
+                {%- else -%}
+                    {%- set ns.content = ns.content + '  ' + key + ': ' + value + '\\n' -%}
+                {%- endif -%}
+            {%- endfor -%}
+            {{ ns.content }}
+            {%- endmacro -%}
+
+            {%- call recursive({"a": {"b": "1", "c": "2"}}) -%}
+            {%- endcall -%}
+        )", {}, {}));
+
     if (!getenv("USE_JINJA2")) {
         EXPECT_EQ(
             "Foo",
@@ -584,6 +632,10 @@ TEST(SyntaxTest, SimpleCases) {
         EXPECT_THAT([]() { render("{% if 1 %}{% else %}{% elif 1 %}{% endif %}", {}, {}); }, ThrowsWithSubstr("Unterminated if"));
         EXPECT_THAT([]() { render("{% filter trim %}", {}, {}); }, ThrowsWithSubstr("Unterminated filter"));
         EXPECT_THAT([]() { render("{# ", {}, {}); }, ThrowsWithSubstr("Missing end of comment tag"));
+
+        EXPECT_THAT([]() {
+            render("{%- macro test() -%}content{%- endmacro -%}{%- call test -%}caller_content{%- endcall -%}", {}, {});
+        }, ThrowsWithSubstr("Invalid call block syntax - expected function call"));
     }
 
     EXPECT_EQ(
