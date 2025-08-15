@@ -226,6 +226,7 @@ set(MODEL_IDS
     OnlyCheeini/greesychat-turbo
     onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX
     open-thoughts/OpenThinker-7B
+    openbmb/MiniCPM3-4B
     openchat/openchat-3.5-0106
     Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2
     OrionStarAI/Orion-14B-Chat
