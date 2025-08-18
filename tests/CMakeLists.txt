@@ -262,7 +262,6 @@ set(MODEL_IDS
     prithivMLmods/Qwen2.5-7B-DeepSeek-R1-1M
     prithivMLmods/QwQ-Math-IO-500M
     prithivMLmods/Triangulum-v2-10B
-    qingy2024/Falcon3-2x10B-MoE-Instruct
     Qwen/QVQ-72B-Preview
     Qwen/Qwen1.5-7B-Chat
     Qwen/Qwen2-7B-Instruct
