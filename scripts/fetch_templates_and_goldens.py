@@ -185,17 +185,26 @@ class chat_template:
                     "name": tool_name,
                 }
             }
+        def make_tool_call_response(tool_call_id, tool_name, content):
+            return {
+                "role": "tool",
+                "name": tool_name,
+                "content": content,
+                "tool_call_id": tool_call_id,
+            }
 
         dummy_args_obj = {"argument_needle": "print('Hello, World!')"}
 
         out = self.try_raw_render([
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", json.dumps(dummy_args_obj))]),
+            make_tool_call_response("call_1___", "ipython", "Hello, world!"),
         ])
         tool_call_renders_str_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
         out = self.try_raw_render([
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", dummy_args_obj)]),
+            make_tool_call_response("call_1___", "ipython", "Hello, world!"),
         ])
         tool_call_renders_obj_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
 
@@ -215,12 +224,7 @@ class chat_template:
             out = self.try_raw_render([
                 dummy_user_msg,
                 make_tool_calls_msg([tc1]),
-                {
-                    "role": "tool",
-                    "name": "test_tool1",
-                    "content": "Some response!",
-                    "tool_call_id": "call_911_",
-                }
+                make_tool_call_response("call_911_", "test_tool1", "Some response!"),
             ])
             caps.supports_tool_responses = "Some response!" in out
             caps.supports_tool_call_id = "call_911_" in out

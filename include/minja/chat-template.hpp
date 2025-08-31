@@ -191,17 +191,27 @@ class chat_template {
                 }},
             };
         };
+        auto make_tool_call_response = [](const std::string & tool_call_id, const std::string & tool_name, const std::string & content) {
+            return json {
+                {"role", "tool"},
+                {"name", tool_name},
+                {"content", content},
+                {"tool_call_id", tool_call_id},
+            };
+        };
         const json dummy_args_obj {{"argument_needle", "print('Hello, World!')"}};
 
         // Note: the arguments are rendered in both cases, but may be double-escaped, which we don't want.
         out = try_raw_render(json::array({
             dummy_user_msg,
             make_tool_calls_msg(json::array({make_tool_call("ipython", dummy_args_obj.dump())})),
+            make_tool_call_response("call_1___", "ipython", "Hello, World!"),
         }), {}, false);
         auto tool_call_renders_str_arguments = contains(out, "<parameter=argument_needle>") || contains(out, "\"argument_needle\":") || contains(out, "'argument_needle':");
         out = try_raw_render(json::array({
             dummy_user_msg,
             make_tool_calls_msg(json::array({make_tool_call("ipython", dummy_args_obj)})),
+            make_tool_call_response("call_1___", "ipython", "Hello, World!"),
         }), {}, false);
         auto tool_call_renders_obj_arguments = contains(out, "<parameter=argument_needle>") || contains(out, "\"argument_needle\":") || contains(out, "'argument_needle':");
 
@@ -221,12 +231,7 @@ class chat_template {
             out = try_raw_render(json::array({
                 dummy_user_msg,
                 make_tool_calls_msg(json::array({tc1})),
-                {
-                    {"role", "tool"},
-                    {"name", "test_tool1"},
-                    {"content", "Some response!"},
-                    {"tool_call_id", "call_911_"},
-                }
+                make_tool_call_response("call_911_", "test_tool1", "Some response!"),
             }), {}, false);
             caps_.supports_tool_responses = contains(out, "Some response!");
             caps_.supports_tool_call_id = contains(out, "call_911_");
