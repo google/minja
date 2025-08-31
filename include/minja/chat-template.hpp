@@ -225,8 +225,7 @@ class chat_template {
             auto out = try_raw_render(json::array({
                 dummy_user_msg,
                 make_tool_calls_msg(json::array({tc1, tc2})),
-                make_tool_call_response("call_1___", "test_tool1", "Hello, World!"),
-                make_tool_call_response("call_1___", "test_tool2", "Hello, World!"),
+                dummy_user_msg,
             }), {}, false);
             caps_.supports_parallel_tool_calls = contains(out, "test_tool1") && contains(out, "test_tool2");
 
