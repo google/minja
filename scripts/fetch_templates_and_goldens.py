@@ -218,6 +218,8 @@ class chat_template:
             out = self.try_raw_render([
                 dummy_user_msg,
                 make_tool_calls_msg([tc1, tc2]),
+                make_tool_call_response("call_1___", "test_tool1", "Hello, World!"),
+                make_tool_call_response("call_1___", "test_tool2", "Hello, World!"),
             ])
             caps.supports_parallel_tool_calls = "test_tool1" in out and "test_tool2" in out
 
