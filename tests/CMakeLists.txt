@@ -223,6 +223,7 @@ set(MODEL_IDS
     nvidia/Eagle2-1B
     nvidia/Eagle2-9B
     nvidia/Llama-3.1-Nemotron-70B-Instruct-HF
+    nvidia/NVIDIA-Nemotron-Nano-9B-v2
     OnlyCheeini/greesychat-turbo
     onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX
     open-thoughts/OpenThinker-7B
