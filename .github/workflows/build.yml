@@ -12,7 +12,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
   # group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}-${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
-  # cancel-in-progress: true
+  cancel-in-progress: true
 
 jobs:
   build_and_test:
@@ -55,6 +55,23 @@ jobs:
           fetch-depth: 1
           single-branch: true
 
+      # - name: Check curl version BEFORE
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
+  
+      # - name: Install Choco Deps
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     choco install curl --yes
+      #     echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
+      #     curl --version
+
+      # - name: Check curl version AFTER
+      #   if: ${{ matrix.setup.os == 'windows-latest' }}
+      #   run: |
+      #     & "C:\Program Files\Git\bin\sh.exe" -xc 'curl --version'
+  
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.11
         with:
