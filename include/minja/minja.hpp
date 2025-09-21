@@ -2725,8 +2725,15 @@ inline std::shared_ptr<Context> Context::builtins() {
   globals.set("raise_exception", simple_function("raise_exception", { "message" }, [](const std::shared_ptr<Context> &, Value & args) -> Value {
     throw std::runtime_error(args.at("message").get<std::string>());
   }));
-  globals.set("tojson", simple_function("tojson", { "value", "indent" }, [](const std::shared_ptr<Context> &, Value & args) {
-    return Value(args.at("value").dump(args.get<int64_t>("indent", -1), /* to_json= */ true));
+  // Accept optional keyword arguments to match common Jinja usage such as
+  // tojson(indent=2) and tojson(ensure_ascii=False). The ensure_ascii flag
+  // is ignored since nlohmann::json dumps UTF-8 by default, but it is
+  // accepted for compatibility to avoid "Unknown argument" errors.
+  globals.set("tojson", simple_function("tojson", { "value", "indent", "ensure_ascii" }, [](const std::shared_ptr<Context> &, Value & args) {
+    // Read indent if provided; ignore ensure_ascii if present.
+    const auto indent = args.get<int64_t>("indent", -1);
+    // bool ensure_ascii = args.get<bool>("ensure_ascii", true); // unused
+    return Value(args.at("value").dump(indent, /* to_json= */ true));
   }));
   globals.set("items", simple_function("items", { "object" }, [](const std::shared_ptr<Context> &, Value & args) {
     auto items = Value::array();
