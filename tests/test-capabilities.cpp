@@ -222,6 +222,18 @@ TEST(CapabilitiesTest, NousResearchHermes2ProLlama3_8BToolUse) {
     EXPECT_FALSE(caps.requires_typed_content);
 }
 
+TEST(CapabilitiesTest, NvidiaNemotronNano_9BToolUse) {
+    auto caps = get_caps("tests/nvidia-NVIDIA-Nemotron-Nano-9B-v2.jinja");
+    EXPECT_TRUE(caps.supports_system_role);
+    EXPECT_TRUE(caps.supports_tools);
+    EXPECT_TRUE(caps.supports_tool_calls);
+    EXPECT_TRUE(caps.supports_tool_responses);
+    EXPECT_TRUE(caps.supports_parallel_tool_calls);
+    EXPECT_FALSE(caps.requires_object_arguments);
+    // EXPECT_TRUE(caps.requires_non_null_content);
+    EXPECT_FALSE(caps.requires_typed_content);
+}
+
 TEST(CapabilitiesTest, CommandRPlusDefault) {
     auto caps = get_caps("tests/CohereForAI-c4ai-command-r-plus-default.jinja");
     EXPECT_TRUE(caps.supports_system_role);
