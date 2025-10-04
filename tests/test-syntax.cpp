@@ -80,6 +80,8 @@ TEST(SyntaxTest, SimpleCases) {
     EXPECT_EQ("bcXYZab", render("{{ 'abcXYZabc'.strip('ac') }}", {}, {}));
 
     EXPECT_EQ(R"(["a", "b"])", render("{{ 'a b'.split(' ') | tojson }}", {}, {}));
+    // Accept ensure_ascii kwarg for compatibility, ignored by implementation
+    EXPECT_EQ(R"("test")", render(R"({{ 'test' | tojson(ensure_ascii=False) }})", {}, {}));
 
     EXPECT_EQ(
         "Ok",
