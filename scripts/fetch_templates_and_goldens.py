@@ -50,6 +50,8 @@ def strftime_now(format):
     now = datetime.datetime.strptime(TEST_DATE, "%Y-%m-%d")
     return now.strftime(format)
 
+def tojson(value, indent=None, ensure_ascii=False, sort_keys=False):
+    return json.dumps(value, indent=indent, ensure_ascii=ensure_ascii, sort_keys=sort_keys)
 
 def join_cmake_path(parent, child):
     '''
@@ -119,8 +121,11 @@ class chat_template:
             env = jinja2.Environment(
                 trim_blocks=True,
                 lstrip_blocks=True,
-                extensions=[jinja2.ext.loopcontrols]
+                extensions=[jinja2.ext.loopcontrols],
             )
+            # https://jinja.palletsprojects.com/en/stable/api/#policies
+            env.policies["json.dumps_function"] = tojson
+            env.filters['tojson'] = tojson
         if filters:
             for name, func in filters.items():
                 env.filters[name] = func
@@ -187,17 +192,24 @@ class chat_template:
             }
 
         dummy_args_obj = {"argument_needle": "print('Hello, World!')"}
+        contains_arg_needle = lambda out_str: (
+            "<parameter=argument_needle>" in out_str
+            or '"argument_needle":' in out_str
+            or "'argument_needle':" in out_str
+            or ">argument_needle<" in out_str
+            or "<parameter name=\"argument_needle\">" in out_str
+        )
 
         out = self.try_raw_render([
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", json.dumps(dummy_args_obj))]),
         ])
-        tool_call_renders_str_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
+        tool_call_renders_str_arguments = contains_arg_needle(out)
         out = self.try_raw_render([
             dummy_user_msg,
             make_tool_calls_msg([make_tool_call("ipython", dummy_args_obj)]),
         ])
-        tool_call_renders_obj_arguments = "<parameter=argument_needle>" in out or '"argument_needle":' in out or "'argument_needle':" in out
+        tool_call_renders_obj_arguments = contains_arg_needle(out)
 
         caps.supports_tool_calls = tool_call_renders_str_arguments or tool_call_renders_obj_arguments
         caps.requires_object_arguments = not tool_call_renders_str_arguments and tool_call_renders_obj_arguments

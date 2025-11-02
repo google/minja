@@ -324,6 +324,7 @@ set(MODEL_IDS
     Qwen/Qwen3-235B-A22B-Thinking-2507
     Qwen/Qwen3-Coder-30B-A3B-Instruct
     Qwen/QwQ-32B
+    zai-org/GLM-4.6
 
     # Broken, TODO:
     # ai21labs/AI21-Jamba-1.5-Large        # https://github.com/google/minja/issues/8
@@ -334,6 +335,7 @@ set(MODEL_IDS
     # HuggingFaceTB/SmolVLM-256M-Instruct
     # HuggingFaceTB/SmolVLM-500M-Instruct
     # HuggingFaceTB/SmolVLM-Instruct
+    # unsloth/MiniMax-M2 # https://github.com/ochafik/minja/pull/7#issuecomment-3478459580
     # meta-llama/Llama-3.2-11B-Vision-Instruct
     # unsloth/DeepSeek-R1
 )

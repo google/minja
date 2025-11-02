@@ -55,7 +55,7 @@ inline std::string normalize_newlines(const std::string & s) {
 }
 
 /* Values that behave roughly like in Python. */
-class Value : public std::enable_shared_from_this<Value> {
+class Value {
 public:
   using CallableType = std::function<Value(const std::shared_ptr<Context> &, ArgumentsValue &)>;
   using FilterType = std::function<Value(const std::shared_ptr<Context> &, ArgumentsValue &)>;
@@ -158,12 +158,14 @@ public:
   Value(const json & v) {
     if (v.is_object()) {
       auto object = std::make_shared<ObjectType>();
+      object->reserve(v.size());
       for (auto it = v.begin(); it != v.end(); ++it) {
-        (*object)[it.key()] = it.value();
+        object->emplace_back(it.key(), Value(it.value()));
       }
       object_ = std::move(object);
     } else if (v.is_array()) {
       auto array = std::make_shared<ArrayType>();
+      array->reserve(v.size());
       for (const auto& item : v) {
         array->push_back(Value(item));
       }
@@ -610,7 +612,7 @@ static std::string error_location_suffix(const std::string & source, size_t pos)
   return out.str();
 }
 
-class Context : public std::enable_shared_from_this<Context> {
+class Context {
   protected:
     Value values_;
     std::shared_ptr<Context> parent_;
@@ -850,12 +852,12 @@ struct LoopControlTemplateToken : public TemplateToken {
 
 struct CallTemplateToken : public TemplateToken {
     std::shared_ptr<Expression> expr;
-    CallTemplateToken(const Location & loc, SpaceHandling pre, SpaceHandling post, std::shared_ptr<Expression> && e) 
+    CallTemplateToken(const Location & loc, SpaceHandling pre, SpaceHandling post, std::shared_ptr<Expression> && e)
         : TemplateToken(Type::Call, loc, pre, post), expr(std::move(e)) {}
 };
 
 struct EndCallTemplateToken : public TemplateToken {
-    EndCallTemplateToken(const Location & loc, SpaceHandling pre, SpaceHandling post) 
+    EndCallTemplateToken(const Location & loc, SpaceHandling pre, SpaceHandling post)
         : TemplateToken(Type::EndCall, loc, pre, post) {}
 };
 
@@ -1060,11 +1062,18 @@ public:
           }
         }
     }
-    void do_render(std::ostringstream &, const std::shared_ptr<Context> & macro_context) const override {
+    void do_render(std::ostringstream &, const std::shared_ptr<Context> & context) const override {
         if (!name) throw std::runtime_error("MacroNode.name is null");
         if (!body) throw std::runtime_error("MacroNode.body is null");
-        auto callable = Value::callable([this, macro_context](const std::shared_ptr<Context> & call_context, ArgumentsValue & args) {
-            auto execution_context = Context::make(Value::object(), macro_context);
+
+        // Use init-capture to avoid dangling 'this' pointer and circular references
+        auto callable = Value::callable([weak_context = std::weak_ptr<Context>(context),
+                                         name = name, params = params, body = body,
+                                         named_param_positions = named_param_positions]
+                                        (const std::shared_ptr<Context> & call_context, ArgumentsValue & args) {
+            auto context_locked = weak_context.lock();
+            if (!context_locked) throw std::runtime_error("Macro context no longer valid");
+            auto execution_context = Context::make(Value::object(), context_locked);
 
             if (call_context->contains("caller")) {
                 execution_context->set("caller", call_context->get("caller"));
@@ -1075,7 +1084,7 @@ public:
                 auto & arg = args.args[i];
                 if (i >= params.size()) throw std::runtime_error("Too many positional arguments for macro " + name->get_name());
                 param_set[i] = true;
-                auto & param_name = params[i].first;
+                const auto & param_name = params[i].first;
                 execution_context->set(param_name, arg);
             }
             for (auto & [arg_name, value] : args.kwargs) {
@@ -1094,7 +1103,7 @@ public:
             }
             return body->render(execution_context);
         });
-        macro_context->set(name->get_name(), callable);
+        context->set(name->get_name(), callable);
     }
 };
 
@@ -1264,7 +1273,7 @@ public:
             }
             return result;
 
-          } else if (target_value.is_array()) {            
+          } else if (target_value.is_array()) {
             auto result = Value::array();
             for (int64_t i = start; step > 0 ? i < end : i > end; i += step) {
               result.push_back(target_value.at(i));
@@ -1313,7 +1322,7 @@ static bool in(const Value & value, const Value & container) {
   return (((container.is_array() || container.is_object()) && container.contains(value)) ||
       (value.is_string() && container.is_string() &&
         container.to_str().find(value.to_str()) != std::string::npos));
-};                                    
+}
 
 class BinaryOpExpr : public Expression {
 public:
@@ -1640,13 +1649,17 @@ public:
     void do_render(std::ostringstream & out, const std::shared_ptr<Context> & context) const override {
         if (!expr) throw std::runtime_error("CallNode.expr is null");
         if (!body) throw std::runtime_error("CallNode.body is null");
-        
-        auto caller = Value::callable([this, context](const std::shared_ptr<Context> &, ArgumentsValue &) -> Value {
-            return Value(body->render(context));
+
+        // Use init-capture to avoid dangling 'this' pointer and circular references
+        auto caller = Value::callable([weak_context = std::weak_ptr<Context>(context), body=body]
+                                      (const std::shared_ptr<Context> &, ArgumentsValue &) -> Value {
+            auto context_locked = weak_context.lock();
+            if (!context_locked) throw std::runtime_error("Caller context no longer valid");
+            return Value(body->render(context_locked));
         });
-        
+
         context->set("caller", caller);
-        
+
         auto call_expr = dynamic_cast<CallExpr*>(expr.get());
         if (!call_expr) {
             throw std::runtime_error("Invalid call block syntax - expected function call");
@@ -1657,7 +1670,7 @@ public:
             throw std::runtime_error("Call target must be callable: " + function.dump());
         }
         ArgumentsValue args = call_expr->args.evaluate(context);
-        
+
         Value result = function.call(context, args);
         out << result.to_str();
     }
@@ -2192,7 +2205,7 @@ private:
 
       auto value = parseValue();
 
-      while (it != end && consumeSpaces() && peekSymbols({ "[", "." })) {
+      while (it != end && consumeSpaces() && peekSymbols({ "[", ".", "(" })) {
         if (!consumeToken("[").empty()) {
           std::shared_ptr<Expression> index;
           auto slice_loc = get_location();
@@ -2215,7 +2228,7 @@ private:
               }
             }
           }
-  
+
           if ((has_first_colon || has_second_colon)) {
             index = std::make_shared<SliceExpr>(slice_loc, std::move(start), std::move(end), std::move(step));
           } else {
@@ -2237,15 +2250,13 @@ private:
               auto key = std::make_shared<LiteralExpr>(identifier->location, Value(identifier->get_name()));
               value = std::make_shared<SubscriptExpr>(identifier->location, std::move(value), std::move(key));
             }
+        } else if (peekSymbols({ "(" })) {
+          auto callParams = parseCallArgs();
+          value = std::make_shared<CallExpr>(get_location(), std::move(value), std::move(callParams));
         }
         consumeSpaces();
       }
 
-      if (peekSymbols({ "(" })) {
-        auto location = get_location();
-        auto callParams = parseCallArgs();
-        value = std::make_shared<CallExpr>(location, std::move(value), std::move(callParams));
-      }
       return value;
     }
 
@@ -2725,7 +2736,7 @@ inline std::shared_ptr<Context> Context::builtins() {
   globals.set("raise_exception", simple_function("raise_exception", { "message" }, [](const std::shared_ptr<Context> &, Value & args) -> Value {
     throw std::runtime_error(args.at("message").get<std::string>());
   }));
-  globals.set("tojson", simple_function("tojson", { "value", "indent" }, [](const std::shared_ptr<Context> &, Value & args) {
+  globals.set("tojson", simple_function("tojson", { "value", "indent", "ensure_ascii" }, [](const std::shared_ptr<Context> &, Value & args) {
     return Value(args.at("value").dump(args.get<int64_t>("indent", -1), /* to_json= */ true));
   }));
   globals.set("items", simple_function("items", { "object" }, [](const std::shared_ptr<Context> &, Value & args) {

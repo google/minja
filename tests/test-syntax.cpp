@@ -11,7 +11,6 @@
 #include <gmock/gmock-matchers.h>
 
 #include <fstream>
-#include <iostream>
 #include <string>
 
 static std::string render_python(const std::string & template_str, const json & bindings, const minja::Options & options) {
@@ -373,6 +372,7 @@ TEST(SyntaxTest, SimpleCases) {
                 {}, {}
             )
         );
+        EXPECT_EQ("False", render("{{ trim(' a ').endswith(' ') }}", {} , {})); // Test parsing of expression (chaining of identifier, function call, method call)
     }
     EXPECT_EQ(
         "[0, 1, 2][0, 2]",

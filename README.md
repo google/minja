@@ -1,6 +1,6 @@
 # minja.hpp - A minimalistic C++ Jinja templating engine for LLM chat templates
 
-_**This is not an official Google product**_
+_**Used to be at https://github.com/google/minja, but I've left Google and I'll only maintain my fork from now on**_
 
 Minja is a minimalistic reimplementation of the [Jinja](https://github.com/pallets/jinja/) templating engine to integrate in/with C++ LLM projects (it's used in [llama.cpp](https://github.com/ggerganov/llama.cpp/pull/11016), [Jan](https://jan.ai/) (through [cortex.cpp](https://github.com/menloresearch/cortex.cpp/pull/1814)), [GPT4All](https://github.com/nomic-ai/gpt4all/pull/3433) and [Docker Model Runner](https://github.com/docker/model-runner)).
 
@@ -211,6 +211,26 @@ Main limitations (non-exhaustive list):
         ```bash
         ./scripts/fuzzing_tests.sh
         ```
+
+- Sanitizer tests:
+
+    ```bash
+    for sanitizer in ADDRESS THREAD UNDEFINED ; do
+        docker run --rm \
+            -v "$PWD":/src:ro \
+            -v "$PWD/build-sanitizer-${sanitizer}":/src/build \
+            -w /src \
+            "$(echo "
+                FROM ghcr.io/astral-sh/uv:debian-slim
+                RUN apt-get update && apt-get install -y build-essential libcurl4-openssl-dev cmake clang-tidy
+            " | docker build . -q -f - )" \
+            bash -c "
+                cmake -B build -DCMAKE_BUILD_TYPE=Debug -DMINJA_SANITIZER=${sanitizer} && \
+                cmake --build build -j --config Debug && \
+                ctest --test-dir build -j -C Debug --output-on-failure
+            "
+    done
+    ```
 
 - If your model's template doesn't run fine, please consider the following before [opening a bug](https://github.com/googlestaging/minja/issues/new):
 

@@ -43,6 +43,15 @@ option(MINJA_EXAMPLE_ENABLED        "minja: Build with example"                 
 option(MINJA_FUZZTEST_ENABLED       "minja: fuzztests enabled"                              MINJA_FUZZTEST_ENABLED_DEFAULT)
 option(MINJA_FUZZTEST_FUZZING_MODE  "minja: run fuzztests (if enabled) in fuzzing mode"     OFF)
 option(MINJA_USE_VENV               "minja: use Python venv for build"                      MINJA_USE_VENV_DEFAULT)
+set(MINJA_SANITIZERS thread address undefined none)
+set(MINJA_SANITIZER none CACHE STRING "minja: sanitizer to use")
+set_property(CACHE MINJA_SANITIZER PROPERTY STRINGS ${MINJA_SANITIZERS})
+
+if (NOT MSVC AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" AND NOT MINJA_SANITIZER STREQUAL "none")
+    message(STATUS "Using -fsanitize=${MINJA_SANITIZER}")
+    add_compile_options("-fsanitize=${MINJA_SANITIZER}")
+    link_libraries     ("-fsanitize=${MINJA_SANITIZER}")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 
