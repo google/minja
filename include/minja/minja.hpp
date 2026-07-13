@@ -1356,8 +1356,8 @@ public:
           }
 
           if (op == Op::And) {
-            if (!l.to_bool()) return Value(false);
-            return right->evaluate(context).to_bool();
+            if (!l.to_bool()) return l;
+            return right->evaluate(context);
           } else if (op == Op::Or) {
             if (l.to_bool()) return l;
             return right->evaluate(context);

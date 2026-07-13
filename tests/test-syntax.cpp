@@ -495,6 +495,9 @@ TEST(SyntaxTest, SimpleCases) {
         "2; ; 10",
         render(R"({{ {1: 2}.get(1) }}; {{ {}.get(1) or '' }}; {{ {}.get(1, 10) }})", {}, {}));
     EXPECT_EQ(
+        "def; ; A; B",
+        render(R"({{ 'abc' and 'def' }}; {{ '' and 'x' }}; {{ (true and 'A') or 'B' }}; {{ (false and 'A') or 'B' }})", {}, {}));
+    EXPECT_EQ(
         R"(1,1.2,"a",true,true,false,false,null,[],[1],[1, 2],{},{"a": 1},{"1": "b"},)",
         render(R"(
             {%- for x in [1, 1.2, "a", true, True, false, False, None, [], [1], [1, 2], {}, {"a": 1}, {1: "b"}] -%}
