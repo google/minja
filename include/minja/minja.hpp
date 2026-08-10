@@ -1806,7 +1806,28 @@ private:
       if (it == end) return nullptr;
       if (*it == '"' || *it == '\'') {
         auto str = parseString();
-        if (str) return std::make_shared<Value>(*str);
+        if (str) {
+          // Python-style implicit string concatenation: adjacent string
+          // literals ("a" "b") fold into one ("ab"). Jinja (and the Gemini/
+          // Gemma templates that embed tool-call error messages) relies on it;
+          // Minja's parser rejected the multi-line call-arg form.
+          while (it != end) {
+            auto save = it;
+            consumeSpaces();
+            if (it != end && (*it == '"' || *it == '\'')) {
+              auto next = parseString();
+              if (!next) {
+                it = save;
+                break;
+              }
+              *str += *next;
+            } else {
+              it = save;
+              break;
+            }
+          }
+          return std::make_shared<Value>(*str);
+        }
       }
       static std::regex prim_tok(R"(true\b|True\b|false\b|False\b|None\b)");
       auto token = consumeToken(prim_tok);
