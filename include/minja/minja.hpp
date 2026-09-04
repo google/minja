@@ -499,13 +499,17 @@ public:
         return get<double>() * rhs.get<double>();
   }
   Value operator/(const Value& rhs) const {
-      if (is_number_integer() && rhs.is_number_integer())
-        return get<int64_t>() / rhs.get<int64_t>();
-      else
+      if (is_number_integer() && rhs.is_number_integer()) {
+        auto d = rhs.get<int64_t>();
+        if (d == 0) throw std::runtime_error("integer division by zero");
+        return get<int64_t>() / d;
+      } else
         return get<double>() / rhs.get<double>();
   }
   Value operator%(const Value& rhs) const {
-    return get<int64_t>() % rhs.get<int64_t>();
+    auto d = rhs.get<int64_t>();
+    if (d == 0) throw std::runtime_error("modulo by zero");
+    return get<int64_t>() % d;
   }
 };
 
@@ -1371,8 +1375,8 @@ public:
               case Op::Mul:       return l * r;
               case Op::Div:       return l / r;
               case Op::MulMul:    return std::pow(l.get<double>(), r.get<double>());
-              case Op::DivDiv:    return l.get<int64_t>() / r.get<int64_t>();
-              case Op::Mod:       return l.get<int64_t>() % r.get<int64_t>();
+              case Op::DivDiv:    { auto d = r.get<int64_t>(); if (d == 0) throw std::runtime_error("integer division by zero"); return l.get<int64_t>() / d; }
+              case Op::Mod:       { auto d = r.get<int64_t>(); if (d == 0) throw std::runtime_error("modulo by zero"); return l.get<int64_t>() % d; }
               case Op::Eq:        return l == r;
               case Op::Ne:        return l != r;
               case Op::Lt:        return l < r;
@@ -1705,6 +1709,7 @@ private:
     std::shared_ptr<std::string> template_str;
     CharIterator start, end, it;
     Options options;
+    int expr_depth = 0;
 
     Parser(const std::shared_ptr<std::string>& template_str, const Options & options) : template_str(template_str), options(options) {
       if (!template_str) throw std::runtime_error("Template string is null");
@@ -1882,6 +1887,13 @@ private:
     }
 
     std::shared_ptr<Expression> parseExpression(bool allow_if_expr = true) {
+        struct DepthGuard {
+            int & d;
+            explicit DepthGuard(int & d) : d(d) {
+                if (++d > 1000) throw std::runtime_error("expression nesting too deep");
+            }
+            ~DepthGuard() { --d; }
+        } depth_guard(expr_depth);
         auto left = parseLogicalOr();
         if (it == end) return left;
 
