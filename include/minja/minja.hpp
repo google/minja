@@ -2523,6 +2523,12 @@ private:
             if (!match.position()) {
                 if (match[0] != "{#")
                     throw std::runtime_error("Internal error: Expected a comment");
+                // Jinja treats a comment opener at EOF as an empty comment.
+                // Consume it explicitly so the tokenizer still makes progress.
+                if (std::distance(it, end) == 2) {
+                    it = end;
+                    continue;
+                }
                 throw std::runtime_error("Missing end of comment tag");
             }
             auto text_end = it + match.position();
